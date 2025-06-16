@@ -18,41 +18,67 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 
 ## ✅ Features
 
-- Supports **read-only Evernote access** (searching, reading, and listing notes).
-- **OAuth 2.0 with PKCE** login flow, with browser auto-launch.
-- Uses **macOS Keychain** to securely store credentials.
-- Designed to work with **Claude Desktop MCP integrations**, with future-proofing for other LLMs (e.g., ChatGPT Desktop).
-- Toggleable **debug logging** to view incoming/outgoing requests for development and troubleshooting.
-- Easy to extend later for note creation, updates, or deletion.
+- Supports **read-only Evernote access** (searching, reading, and listing notes)
+- **OAuth 1.0a authentication** with browser auto-launch for secure authorization
+- Uses **macOS Keychain** to securely store access tokens
+- **HTTPS-only server** with self-signed certificates for local development
+- Designed to work with **Claude Desktop MCP integrations**, with future-proofing for other LLMs (e.g., ChatGPT Desktop)
+- Toggleable **debug logging** to view incoming/outgoing requests for development and troubleshooting
+- Easy to extend later for note creation, updates, or deletion
 
 ## 🧰 Tech Stack
 
-- Node.js + Express
-- Evernote API (OAuth2 + REST)
+- Node.js + Express with HTTPS
+- Evernote API (OAuth 1.0a + REST)
 - macOS Keychain via `keytar`
 - MCP protocol compliance
 - GitHub Copilot and 1Password SSH signing for development
 
 ## 🗝️ Authentication
 
-- First-time login uses a browser-based OAuth flow with PKCE.
-- Access and refresh tokens are stored securely in macOS Keychain.
-- (Planned) Future support for file-based token store for Linux/Windows.
+Evernote uses OAuth 1.0a (not OAuth 2.0) for API authentication:
+
+- **First-time setup**: Browser-based OAuth 1.0a flow with automatic token exchange
+- **Token storage**: Access tokens stored securely in macOS Keychain via `keytar`
+- **Automatic reuse**: Stored tokens are automatically used for subsequent API calls
+- **Sandbox mode**: Uses Evernote sandbox by default for development
+- (Planned) Future support for file-based token store for Linux/Windows
 
 ## 💻 Setup
 
 ### Requirements
 
-- macOS with Node.js installed via Homebrew (`node --version`)
-- GitHub SSH key configured via 1Password
-- Visual Studio Code with GitHub Copilot and Copilot Chat extensions
+- macOS with Node.js 18+ installed via Homebrew (`node --version`)
+- OpenSSL for SSL certificate generation
+- Evernote developer account and API credentials
+- GitHub SSH key configured via 1Password (for development)
+- Visual Studio Code with GitHub Copilot and Copilot Chat extensions (for development)
 
-### Clone & Run
+### Clone & Setup
 
 ```bash
 git clone git@github.com:brentmid/evernote-mcp-server.git
 cd evernote-mcp-server
 npm install
+```
+
+#### Get Evernote API Credentials
+
+1. **Register your application** at [Evernote Developers](https://dev.evernote.com/)
+2. **Create a new app** and note your Consumer Key and Consumer Secret
+3. **Set callback URL** to `https://localhost:3443/oauth/callback`
+
+#### Configure Environment Variables
+
+Set your Evernote API credentials:
+
+```bash
+# Add to your shell profile (.zshrc, .bashrc, etc.)
+export EVERNOTE_CONSUMER_KEY="your-consumer-key-here"
+export EVERNOTE_CONSUMER_SECRET="your-consumer-secret-here"
+
+# Reload your shell or run:
+source ~/.zshrc
 ```
 
 #### Generate SSL Certificates
@@ -75,16 +101,124 @@ npx node index.js
 
 The server will start on `https://localhost:3443`. Your browser will show a security warning for the self-signed certificate - this is normal for local development.
 
-### First Run
+### First Run & OAuth Flow
 
-- Generate SSL certificates (see setup instructions above)
-- Server will launch OAuth2 login in your browser
-- Accept the self-signed certificate warning in your browser
-- Upon success, token is saved and used for future requests
+1. **Generate SSL certificates** (see setup instructions above)
+2. **Set environment variables** with your Evernote API credentials
+3. **Start the server**: `npx node index.js`
+4. **Complete OAuth authentication**:
+   - Server automatically opens your browser to Evernote's authorization page
+   - Accept the self-signed certificate warning in your browser
+   - Log in to your Evernote account and authorize the application
+   - You'll be redirected back to the server with a success message
+   - Access token is automatically stored in macOS Keychain for future use
+
+#### OAuth Flow Details
+
+The server implements Evernote's OAuth 1.0a flow:
+
+1. **Request Token**: Server generates temporary request token
+2. **User Authorization**: Browser opens Evernote authorization URL
+3. **Callback**: User authorizes app, Evernote redirects to callback URL
+4. **Access Token**: Server exchanges request token for permanent access token
+5. **Storage**: Access token stored securely in macOS Keychain
+
+**Note**: The server uses Evernote's sandbox environment by default. To use production, modify the URLs in `auth.js`.
 
 ## 🧪 Testing
 
-You can write and run unit tests to verify MCP command handlers. Claude Desktop can be used to validate that your MCP server responds properly to natural language prompts.
+The project includes a comprehensive test suite with **38 tests** covering all critical functionality:
+
+### Test Commands
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage report  
+npm run test:coverage
+
+# Run tests in watch mode (for development)
+npm run test:watch
+```
+
+### Test Structure
+
+```
+tests/
+├── auth.test.js        # OAuth 1.0a authentication tests
+├── server.test.js      # Express server route tests
+├── integration.test.js # End-to-end workflow tests
+├── setup.js           # Global test configuration
+└── jest.config.js     # Jest configuration
+```
+
+### Test Coverage Details
+
+#### 🔐 **auth.test.js** - OAuth Authentication (12 tests)
+- **OAuth Parameter Generation**: Validates required OAuth 1.0a parameters
+- **HMAC-SHA1 Signature Generation**: Tests cryptographic signatures with known test vectors
+- **Keychain Integration**: Store/retrieve tokens in macOS Keychain
+- **Authentication Flow**: Existing token reuse vs new OAuth flow initiation
+- **Configuration Validation**: Evernote endpoints and environment variables
+- **Error Handling**: Network failures and keychain access errors
+
+#### 🌐 **server.test.js** - Express Server Routes (15 tests)
+- **Health Check** (`GET /`): Server status and JSON responses
+- **OAuth Callback** (`GET /oauth/callback`): 
+  - Successful token exchange
+  - Missing parameter validation
+  - Invalid OAuth state handling
+  - Error scenarios
+- **MCP Endpoint** (`POST /mcp`):
+  - Authenticated request handling
+  - Unauthenticated request rejection (401)
+  - JSON body parsing
+  - Internal error handling
+- **Content-Type Handling**: JSON validation and malformed request handling
+- **Route Validation**: 404 errors for unknown routes and wrong HTTP methods
+
+#### 🔄 **integration.test.js** - End-to-End Workflows (11 tests)
+- **Complete OAuth Flow**: Simulated request token → authorization → access token exchange
+- **OAuth State Management**: State preservation between request and callback phases
+- **Browser Integration**: System browser launching for authorization
+- **Error Scenarios**: Network failures, invalid responses, keychain errors
+- **Configuration Validation**: Endpoint URLs and credential validation
+- **Token Lifecycle**: Storage, retrieval, and reuse patterns
+
+### Coverage Requirements
+
+The test suite maintains high coverage standards:
+- **Branches**: 70% minimum coverage
+- **Functions**: 80% minimum coverage  
+- **Lines**: 80% minimum coverage
+- **Statements**: 80% minimum coverage
+
+### Test Features
+
+- **Comprehensive Mocking**: All external dependencies (Keychain, browser, SSL, network)
+- **Environment Isolation**: Test-specific environment variables prevent interference
+- **Real Crypto Testing**: Actual HMAC-SHA1 signature validation with known test vectors
+- **Error Scenario Coverage**: Network failures, malformed responses, access denials
+- **Integration Validation**: Full OAuth workflow simulation without external API calls
+
+### Running Specific Tests
+
+```bash
+# Run only authentication tests
+npm test auth.test.js
+
+# Run only server tests  
+npm test server.test.js
+
+# Run only integration tests
+npm test integration.test.js
+
+# Run tests matching a pattern
+npm test -- --testNamePattern="OAuth"
+```
+
+The test suite ensures OAuth 1.0a implementation correctness, validates all server endpoints, and provides confidence in the authentication flow without requiring actual Evernote API calls or SSL certificates during testing. Claude Desktop can also be used to validate that your MCP server responds correctly to natural language prompts.
 
 ## 🔒 Security
 

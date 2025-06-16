@@ -37,7 +37,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - Requires macOS with Node.js 18+ and OpenSSL for certificate generation
 - **Evernote API Credentials**: Requires registered Evernote developer app
 - Browser-based OAuth 1.0a flow launches automatically on first run
-- **Sandbox Mode**: Uses Evernote sandbox by default (change URLs in auth.js for production)
+- **Production Environment**: Uses Evernote production API (sandbox decommissioned)
 - Designed for Claude Desktop MCP integration with future LLM compatibility
 - Debug logging available for development and troubleshooting
 - SSL certificates stored in cert/ directory (excluded from git)

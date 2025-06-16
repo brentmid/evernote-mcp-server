@@ -41,7 +41,7 @@ Evernote uses OAuth 1.0a (not OAuth 2.0) for API authentication:
 - **First-time setup**: Browser-based OAuth 1.0a flow with automatic token exchange
 - **Token storage**: Access tokens stored securely in macOS Keychain via `keytar`
 - **Automatic reuse**: Stored tokens are automatically used for subsequent API calls
-- **Sandbox mode**: Uses Evernote sandbox by default for development
+- **Production environment**: Uses Evernote production API (sandbox decommissioned)
 - (Planned) Future support for file-based token store for Linux/Windows
 
 ## 💻 Setup
@@ -123,7 +123,7 @@ The server implements Evernote's OAuth 1.0a flow:
 4. **Access Token**: Server exchanges request token for permanent access token
 5. **Storage**: Access token stored securely in macOS Keychain
 
-**Note**: The server uses Evernote's sandbox environment by default. To use production, modify the URLs in `auth.js`.
+**Note**: The server uses Evernote's production environment (sandbox has been decommissioned by Evernote).
 
 ## 🧪 Testing
 

@@ -49,15 +49,22 @@ app.get('/', (req, res) => {
  */
 app.get('/oauth/callback', async (req, res) => {
   try {
+    console.log('🔄 OAuth callback received');
+    // Debug logging (uncomment for troubleshooting)
+    // console.log('📝 Query parameters:', req.query);
+    // console.log('📝 Current OAuth state keys:', Object.keys(oauthState));
+    
     const { oauth_token, oauth_verifier } = req.query;
     
     if (!oauth_token || !oauth_verifier) {
+      console.error('❌ Missing OAuth parameters');
       return res.status(400).json({ error: 'Missing OAuth parameters' });
     }
     
     // Retrieve stored request token secret
     const requestTokenSecret = oauthState[oauth_token];
     if (!requestTokenSecret) {
+      console.error('❌ Invalid OAuth state - token not found');
       return res.status(400).json({ error: 'Invalid OAuth state' });
     }
     

@@ -198,9 +198,9 @@ describe('Auth Module', () => {
 
   describe('Configuration', () => {
     test('should use correct Evernote endpoints', () => {
-      expect(auth.EVERNOTE_CONFIG.requestTokenUrl).toBe('https://sandbox.evernote.com/oauth');
-      expect(auth.EVERNOTE_CONFIG.authorizeUrl).toBe('https://sandbox.evernote.com/OAuth.action');
-      expect(auth.EVERNOTE_CONFIG.accessTokenUrl).toBe('https://sandbox.evernote.com/oauth');
+      expect(auth.EVERNOTE_CONFIG.requestTokenUrl).toBe('https://www.evernote.com/oauth');
+      expect(auth.EVERNOTE_CONFIG.authorizeUrl).toBe('https://www.evernote.com/OAuth.action');
+      expect(auth.EVERNOTE_CONFIG.accessTokenUrl).toBe('https://www.evernote.com/oauth');
       expect(auth.EVERNOTE_CONFIG.callbackUrl).toBe('https://localhost:3443/oauth/callback');
     });
     

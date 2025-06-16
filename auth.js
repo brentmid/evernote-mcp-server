@@ -13,17 +13,13 @@ const { exec } = require('child_process');
 /**
  * Configuration for Evernote OAuth
  * Note: You'll need to register your app at https://dev.evernote.com/
+ * Sandbox has been decommissioned - using production URLs
  */
 const EVERNOTE_CONFIG = {
-  // Sandbox URLs for development
-  requestTokenUrl: 'https://sandbox.evernote.com/oauth',
-  authorizeUrl: 'https://sandbox.evernote.com/OAuth.action',
-  accessTokenUrl: 'https://sandbox.evernote.com/oauth',
-  
-  // Production URLs (uncomment when ready for production)
-  // requestTokenUrl: 'https://www.evernote.com/oauth',
-  // authorizeUrl: 'https://www.evernote.com/OAuth.action', 
-  // accessTokenUrl: 'https://www.evernote.com/oauth',
+  // Production URLs (sandbox is no longer available)
+  requestTokenUrl: 'https://www.evernote.com/oauth',
+  authorizeUrl: 'https://www.evernote.com/OAuth.action',
+  accessTokenUrl: 'https://www.evernote.com/oauth',
   
   callbackUrl: 'https://localhost:3443/oauth/callback',
   serviceName: 'evernote-mcp-server',
@@ -110,31 +106,56 @@ function makeOAuthRequest(requestUrl, params, tokenSecret = '') {
     const queryString = querystring.stringify(params);
     const fullUrl = `${requestUrl}?${queryString}`;
     
+    // Debug logging (uncomment for troubleshooting)
+    // console.log('🌐 Making OAuth request to:', requestUrl);
+    // console.log('📝 Full URL:', fullUrl);
+    // console.log('📝 Token secret for signature:', tokenSecret ? '[PRESENT]' : '[EMPTY]');
+    
     https.get(fullUrl, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
+        // Debug logging (uncomment for troubleshooting)
+        // console.log('📨 HTTP Response Status:', res.statusCode);
+        // console.log('📨 Raw response data:', data);
+        
         if (res.statusCode === 200) {
           const parsed = querystring.parse(data);
+          // console.log('📨 Parsed response:', parsed);
           resolve(parsed);
         } else {
+          console.error('❌ HTTP Error Response:', data);
           reject(new Error(`HTTP ${res.statusCode}: ${data}`));
         }
       });
-    }).on('error', reject);
+    }).on('error', (err) => {
+      console.error('❌ Network error:', err.message);
+      reject(err);
+    });
   });
 }
 
 /**
- * Store access token in macOS Keychain
- * @param {string} token - Access token
- * @param {string} tokenSecret - Token secret
+ * Store access token and Evernote data in macOS Keychain
+ * @param {Object} tokenData - Complete token data from Evernote
  */
-async function storeTokenInKeychain(token, tokenSecret) {
+async function storeTokenInKeychain(tokenData) {
   try {
-    await keytar.setPassword(EVERNOTE_CONFIG.serviceName, 'access_token', token);
-    await keytar.setPassword(EVERNOTE_CONFIG.serviceName, 'token_secret', tokenSecret);
-    console.log('✅ Access token stored in Keychain');
+    await keytar.setPassword(EVERNOTE_CONFIG.serviceName, 'access_token', tokenData.accessToken);
+    // Store empty token secret as a placeholder string (Keychain requires non-empty password)
+    await keytar.setPassword(EVERNOTE_CONFIG.serviceName, 'token_secret', tokenData.tokenSecret || 'EMPTY_TOKEN_SECRET');
+    
+    // Store Evernote-specific data as JSON
+    const edamData = {
+      shard: tokenData.edamShard,
+      userId: tokenData.edamUserId,
+      expires: tokenData.edamExpires,
+      noteStoreUrl: tokenData.edamNoteStoreUrl,
+      webApiUrlPrefix: tokenData.edamWebApiUrlPrefix
+    };
+    await keytar.setPassword(EVERNOTE_CONFIG.serviceName, 'edam_data', JSON.stringify(edamData));
+    
+    console.log('✅ Access token and Evernote data stored in Keychain');
   } catch (error) {
     console.error('❌ Failed to store token in Keychain:', error.message);
     throw error;
@@ -142,16 +163,36 @@ async function storeTokenInKeychain(token, tokenSecret) {
 }
 
 /**
- * Retrieve access token from macOS Keychain
+ * Retrieve access token and Evernote data from macOS Keychain
  * @returns {Promise<Object>} Token object or null
  */
 async function getTokenFromKeychain() {
   try {
     const accessToken = await keytar.getPassword(EVERNOTE_CONFIG.serviceName, 'access_token');
     const tokenSecret = await keytar.getPassword(EVERNOTE_CONFIG.serviceName, 'token_secret');
+    const edamDataJson = await keytar.getPassword(EVERNOTE_CONFIG.serviceName, 'edam_data');
     
-    if (accessToken && tokenSecret) {
-      return { accessToken, tokenSecret };
+    if (accessToken) {
+      const result = { 
+        accessToken, 
+        tokenSecret: (tokenSecret === 'EMPTY_TOKEN_SECRET') ? '' : (tokenSecret || '')
+      };
+      
+      // Include Evernote-specific data if available
+      if (edamDataJson) {
+        try {
+          const edamData = JSON.parse(edamDataJson);
+          result.edamShard = edamData.shard;
+          result.edamUserId = edamData.userId;
+          result.edamExpires = edamData.expires;
+          result.edamNoteStoreUrl = edamData.noteStoreUrl;
+          result.edamWebApiUrlPrefix = edamData.webApiUrlPrefix;
+        } catch (parseError) {
+          console.warn('⚠️ Failed to parse Evernote data from Keychain');
+        }
+      }
+      
+      return result;
     }
     return null;
   } catch (error) {
@@ -219,18 +260,40 @@ function redirectToAuthorization(requestToken) {
  */
 async function getAccessToken(requestToken, requestTokenSecret, verifier) {
   console.log('🔄 Exchanging request token for access token...');
+  // Debug logging (uncomment for troubleshooting)
+  // console.log('📝 Request token:', requestToken);
+  // console.log('📝 Verifier:', verifier);
   
   const params = generateOAuthParams(requestToken, verifier);
-  const response = await makeOAuthRequest(EVERNOTE_CONFIG.accessTokenUrl, params, requestTokenSecret);
+  // console.log('📝 OAuth params for access token:', params);
   
-  if (!response.oauth_token || !response.oauth_token_secret) {
-    throw new Error('Invalid response from Evernote: missing access token data');
+  const response = await makeOAuthRequest(EVERNOTE_CONFIG.accessTokenUrl, params, requestTokenSecret);
+  // console.log('📝 Raw response from Evernote:', response);
+  
+  if (!response.oauth_token) {
+    console.error('❌ Missing required oauth_token in response');
+    console.error('📝 Received keys:', Object.keys(response));
+    throw new Error('Invalid response from Evernote: missing access token');
+  }
+  
+  // Note: Evernote may return empty oauth_token_secret for access tokens - this is normal
+  if (response.oauth_token_secret === undefined) {
+    console.error('❌ Missing oauth_token_secret field in response');
+    console.error('📝 Received keys:', Object.keys(response));
+    throw new Error('Invalid response from Evernote: missing token secret field');
   }
   
   console.log('✅ Access token received');
+  
   return {
     accessToken: response.oauth_token,
-    tokenSecret: response.oauth_token_secret
+    tokenSecret: response.oauth_token_secret || '', // Handle empty token secret
+    // Include Evernote-specific data for future API calls
+    edamShard: response.edam_shard,
+    edamUserId: response.edam_userId,
+    edamExpires: response.edam_expires,
+    edamNoteStoreUrl: response.edam_noteStoreUrl,
+    edamWebApiUrlPrefix: response.edam_webApiUrlPrefix
   };
 }
 
@@ -279,7 +342,7 @@ async function authenticate() {
  */
 async function handleCallback(token, verifier, requestTokenSecret) {
   const tokenData = await getAccessToken(token, requestTokenSecret, verifier);
-  await storeTokenInKeychain(tokenData.accessToken, tokenData.tokenSecret);
+  await storeTokenInKeychain(tokenData);
   return tokenData;
 }
 

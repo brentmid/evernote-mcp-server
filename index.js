@@ -4,14 +4,20 @@
 const express = require('express');
 
 /**
+ * Import Node.js built-in modules for HTTPS and file system operations
+ */
+const https = require('https');
+const fs = require('fs');
+
+/**
  * Create an Express application instance
  */
 const app = express();
 
 /**
- * Set the server port - use environment variable PORT if available, otherwise default to 3333
+ * Set the server port - use environment variable PORT if available, otherwise default to 3443 for HTTPS
  */
-const port = process.env.PORT || 3333;
+const port = process.env.PORT || 3443;
 
 /**
  * Configure middleware to automatically parse JSON request bodies
@@ -40,9 +46,17 @@ app.post('/mcp', (req, res) => {
 });
 
 /**
- * Start the HTTP server and listen for incoming connections
+ * Load SSL certificate and private key for HTTPS
+ */
+const sslOptions = {
+  key: fs.readFileSync('./cert/localhost.key'),
+  cert: fs.readFileSync('./cert/localhost.crt')
+};
+
+/**
+ * Start the HTTPS server and listen for incoming connections
  * Logs a confirmation message when the server starts successfully
  */
-app.listen(port, () => {
-  console.log(`Evernote MCP Server listening on port ${port}`);
+https.createServer(sslOptions, app).listen(port, () => {
+  console.log(`Evernote MCP Server listening on HTTPS port ${port}`);
 });

@@ -53,13 +53,34 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 git clone git@github.com:brentmid/evernote-mcp-server.git
 cd evernote-mcp-server
 npm install
+```
+
+#### Generate SSL Certificates
+
+The server runs over HTTPS and requires SSL certificates for local development:
+
+```bash
+# Create certificate directory
+mkdir cert
+
+# Generate self-signed certificate (valid for 365 days)
+openssl req -x509 -newkey rsa:4096 -keyout cert/localhost.key -out cert/localhost.crt -days 365 -nodes -subj "/C=US/ST=Local/L=Local/O=Local/OU=Local/CN=localhost"
+```
+
+#### Start the Server
+
+```bash
 npx node index.js
 ```
 
+The server will start on `https://localhost:3443`. Your browser will show a security warning for the self-signed certificate - this is normal for local development.
+
 ### First Run
 
-- Server will launch OAuth2 login in your browser.
-- Upon success, token is saved and used for future requests.
+- Generate SSL certificates (see setup instructions above)
+- Server will launch OAuth2 login in your browser
+- Accept the self-signed certificate warning in your browser
+- Upon success, token is saved and used for future requests
 
 ## 🧪 Testing
 

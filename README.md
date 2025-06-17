@@ -51,6 +51,7 @@ Evernote uses OAuth 1.0a (not OAuth 2.0) for API authentication:
 - macOS with Node.js 18+ installed via Homebrew (`node --version`)
 - OpenSSL for SSL certificate generation
 - Evernote developer account and API credentials
+- **Claude Desktop app** (for MCP integration)
 - GitHub SSH key configured via 1Password (for development)
 - Visual Studio Code with GitHub Copilot and Copilot Chat extensions (for development)
 
@@ -127,6 +128,115 @@ The server implements Evernote's OAuth 1.0a flow:
 5. **Storage**: Access token stored securely in macOS Keychain
 
 **Note**: The server uses Evernote's production environment (sandbox has been decommissioned by Evernote).
+
+## 🔗 Claude Desktop Integration
+
+After completing the server setup above, you need to configure Claude Desktop to connect to your MCP server.
+
+### Step 1: Locate Claude Desktop Configuration
+
+Claude Desktop stores its configuration at:
+```
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+### Step 2: Configure MCP Server
+
+Edit the Claude Desktop configuration file to include your Evernote MCP server:
+
+```json
+{
+  "mcpServers": {
+    "evernote": {
+      "command": "node",
+      "args": ["/Users/brent/bin/evernote-mcp-server/index.js"],
+      "env": {
+        "EVERNOTE_CONSUMER_KEY": "your-actual-consumer-key",
+        "EVERNOTE_CONSUMER_SECRET": "your-actual-consumer-secret"
+      }
+    }
+  }
+}
+```
+
+**Important**: Replace the placeholder values with your actual Evernote API credentials.
+
+### Step 3: Restart Claude Desktop
+
+1. **Quit Claude Desktop** completely (⌘+Q or right-click dock icon → Quit)
+2. **Reopen Claude Desktop**
+3. **Verify connection**: You should see Evernote tools available in the interface
+
+### Step 4: Test Integration
+
+Try asking Claude to search your Evernote notes:
+
+> "Search my Evernote for notes about project planning"
+
+> "Find my most recent meeting notes in Evernote"
+
+> "Show me all Evernote notes tagged with 'important'"
+
+### Available Claude Desktop Tools
+
+Once connected, Claude Desktop will have access to these Evernote tools:
+
+- **`createSearch`**: Search notes using natural language queries
+- **`getSearch`**: Retrieve cached search results
+- **`getNote`**: Get detailed metadata for a specific note
+- **`getNoteContent`**: Retrieve full note content in text, HTML, or ENML format
+
+### Troubleshooting Claude Desktop Connection
+
+**Connection fails:**
+- Verify your server is running (`ps aux | grep "node index.js"`)
+- Check credentials are correctly set in `claude_desktop_config.json`
+- Ensure the server path in `args` is absolute and correct
+- Restart Claude Desktop after configuration changes
+
+**Tools not visible:**
+- Wait a few seconds after Claude Desktop restart
+- Check Claude Desktop console for error messages
+- Verify OAuth authentication completed successfully (check server logs)
+
+**Authentication errors:**
+- Complete OAuth flow by running the server standalone first
+- Check tokens are stored in macOS Keychain (`Keychain Access.app`)
+- Verify Evernote API credentials are valid and active
+
+### Configuration Alternatives
+
+**Option 1: Environment Variables (Recommended)**
+Set credentials in your shell environment and remove the `env` section from Claude Desktop config:
+
+```bash
+# In your ~/.zshrc or ~/.bashrc
+export EVERNOTE_CONSUMER_KEY="your-consumer-key"
+export EVERNOTE_CONSUMER_SECRET="your-consumer-secret"
+```
+
+Then use this simpler Claude Desktop configuration:
+```json
+{
+  "mcpServers": {
+    "evernote": {
+      "command": "node",
+      "args": ["/Users/brent/bin/evernote-mcp-server/index.js"]
+    }
+  }
+}
+```
+
+**Option 2: Launch from Terminal**
+Open Claude Desktop from a terminal where environment variables are set:
+```bash
+# Set credentials
+export EVERNOTE_CONSUMER_KEY="your-key"
+export EVERNOTE_CONSUMER_SECRET="your-secret"
+
+# Launch Claude Desktop
+open -a "Claude"
+```
 
 ## 🐛 Debug & Development
 

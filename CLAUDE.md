@@ -98,43 +98,112 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - Comprehensive test suite (38 tests) with extensive mocking
 - MCP tool manifest (mcp.json) with complete specification  
 - POST /mcp endpoint with command dispatching
-- Real Evernote API implementation for createSearch tool
-- Four MCP tools defined: createSearch, getSearch, getNote, getNoteContent
-- createSearch tool with Apache Thrift protocol implementation
+- **Complete Apache Thrift protocol implementation** with official Evernote IDL definitions
+- **Real Evernote API integration** - all mock implementations replaced with actual Thrift calls
+- Four MCP tools fully implemented: createSearch, getSearch, getNote, getNoteContent
 - Support for advanced search filters (notebook, tags, date ranges)
 - Modular tool architecture in tools/ directory
+- **Claude Desktop integration** with MCP server configuration
+- GET /mcp.json endpoint for serving MCP manifest
+- Generated JavaScript Thrift client libraries from official Evernote IDL files
 
 ### In Progress 🚧
-- Real Evernote API integration with proper Thrift protocol (currently using enhanced mock implementation)
+- Performance optimizations for large note collections
+- Enhanced error handling and user feedback
 
 ### Planned Features 📋
-- Complete Evernote Thrift IDL integration (replace mock with real Thrift client)
-- Enhanced error handling and logging
-- Support for additional Evernote search filters
-- Integration with Claude Desktop
-- Performance optimizations for large note collections
+- Support for additional Evernote search filters and advanced queries
+- Cross-platform compatibility (Linux/Windows token storage)
+- Integration with other MCP-compatible LLMs
+
+## Claude Desktop Integration
+
+### Configuration Setup
+
+Claude Desktop requires configuration in its settings file to connect to the MCP server:
+
+**Location**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+**Configuration**:
+```json
+{
+  "mcpServers": {
+    "evernote": {
+      "command": "node",
+      "args": ["/Users/brent/bin/evernote-mcp-server/index.js"],
+      "env": {
+        "EVERNOTE_CONSUMER_KEY": "your-actual-consumer-key",
+        "EVERNOTE_CONSUMER_SECRET": "your-actual-consumer-secret"
+      }
+    }
+  }
+}
+```
+
+### Integration Steps
+
+1. **Complete Server Setup**: Follow development commands to set up the server, certificates, and complete OAuth flow
+2. **Configure Claude Desktop**: Edit the configuration file with your credentials and absolute path
+3. **Restart Claude Desktop**: Quit completely (⌘+Q) and reopen
+4. **Test Integration**: Ask Claude to search your Evernote notes
+
+### Available MCP Tools in Claude Desktop
+
+- **createSearch**: Natural language search of Evernote notes with filters
+- **getSearch**: Retrieve cached search results by ID
+- **getNote**: Get detailed note metadata including tags and notebook info
+- **getNoteContent**: Retrieve full note content in text, HTML, or ENML formats
+
+### Example Claude Desktop Interactions
+
+```
+User: "Search my Evernote for notes about boat maintenance"
+Claude: [Uses createSearch tool] "I found 12 notes about boat maintenance..."
+
+User: "Get the full content of that first note"
+Claude: [Uses getNoteContent tool] "Here's the complete content..."
+
+User: "Show me my most recent meeting notes"
+Claude: [Uses createSearch with date filters] "Here are your recent meeting notes..."
+```
+
+### Troubleshooting Claude Desktop
+
+**Common Issues**:
+- **Server not running**: Ensure the MCP server is started before launching Claude Desktop
+- **Authentication failure**: Complete OAuth flow standalone first to store tokens in Keychain
+- **Path errors**: Use absolute paths in Claude Desktop configuration
+- **Credential issues**: Verify Evernote API keys are correctly set
+
+**Debug Methods**:
+- Check server logs for Thrift connection errors
+- Use `DEV_MODE=true` for detailed API logging
+- Verify tokens in macOS Keychain Access app
+- Test server endpoints directly with curl before Claude Desktop integration
 
 ## File Structure
 
 ```
 evernote-mcp-server/
-├── index.js              # Main HTTPS server with OAuth integration
+├── index.js              # Main HTTPS server with OAuth integration and /mcp.json endpoint
 ├── auth.js               # OAuth 1.0a authentication module
 ├── mcp.json              # MCP tool manifest for Claude Desktop
 ├── tools/                # MCP tool implementations
-│   ├── createSearch.js   # Thrift-based search implementation
+│   ├── createSearch.js   # Real Thrift-based search implementation
 │   ├── getSearch.js      # Search result caching and retrieval
-│   ├── getNote.js        # Note metadata retrieval
-│   └── getNoteContent.js # Note content with format conversion
+│   ├── getNote.js        # Note metadata retrieval with tag/notebook resolution
+│   └── getNoteContent.js # Note content with ENML/HTML/text format conversion
 ├── thrift/               # Apache Thrift client implementation
-│   └── evernote-client.js # Thrift protocol client for Evernote
+│   ├── evernote-client.js # Real Thrift protocol client for Evernote
+│   ├── *.thrift          # Official Evernote IDL definitions (5 files)
+│   └── gen-nodejs/       # Generated JavaScript Thrift client libraries (7 files)
 ├── tests/                # Comprehensive test suite (38 tests)
 │   ├── auth.test.js      # OAuth authentication tests
 │   ├── server.test.js    # Express server route tests
 │   ├── integration.test.js # End-to-end workflow tests
 │   └── setup.js          # Global test configuration
 ├── cert/                 # SSL certificates (excluded from git)
-├── package.json          # Dependencies and scripts
+├── package.json          # Dependencies and scripts (includes thrift dependency)
 ├── jest.config.js        # Jest test configuration
 ├── .gitignore            # Git ignore patterns
 ├── README.md             # Detailed project documentation

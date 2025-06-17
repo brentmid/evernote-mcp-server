@@ -100,14 +100,15 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - POST /mcp endpoint with command dispatching
 - Real Evernote API implementation for createSearch tool
 - Four MCP tools defined: createSearch, getSearch, getNote, getNoteContent
-- createSearch tool with full Evernote NoteStore API integration
+- createSearch tool with Apache Thrift protocol implementation
 - Support for advanced search filters (notebook, tags, date ranges)
 - Modular tool architecture in tools/ directory
 
 ### In Progress 🚧
-- Implementation of getSearch, getNote, getNoteContent tools with real API integration
+- Real Evernote API integration with proper Thrift protocol (currently using enhanced mock implementation)
 
 ### Planned Features 📋
+- Complete Evernote Thrift IDL integration (replace mock with real Thrift client)
 - Enhanced error handling and logging
 - Support for additional Evernote search filters
 - Integration with Claude Desktop
@@ -121,7 +122,12 @@ evernote-mcp-server/
 ├── auth.js               # OAuth 1.0a authentication module
 ├── mcp.json              # MCP tool manifest for Claude Desktop
 ├── tools/                # MCP tool implementations
-│   └── createSearch.js   # Real Evernote API search implementation
+│   ├── createSearch.js   # Thrift-based search implementation
+│   ├── getSearch.js      # Search result caching and retrieval
+│   ├── getNote.js        # Note metadata retrieval
+│   └── getNoteContent.js # Note content with format conversion
+├── thrift/               # Apache Thrift client implementation
+│   └── evernote-client.js # Thrift protocol client for Evernote
 ├── tests/                # Comprehensive test suite (38 tests)
 │   ├── auth.test.js      # OAuth authentication tests
 │   ├── server.test.js    # Express server route tests

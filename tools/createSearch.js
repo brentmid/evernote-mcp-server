@@ -5,6 +5,7 @@
 
 const https = require('https');
 const querystring = require('querystring');
+const { createNoteStoreClient, callThriftMethod, closeConnection } = require('../thrift/evernote-client');
 
 // Check if development mode is enabled
 const DEV_MODE = process.env.DEV_MODE === 'true' || process.env.NODE_ENV === 'development';
@@ -49,77 +50,79 @@ function buildSearchQuery(args) {
 }
 
 /**
- * Make authenticated request to Evernote NoteStore API
- * @param {string} endpoint - API endpoint path
- * @param {Object} data - Request data
+ * Make authenticated request to Evernote NoteStore API using Thrift protocol
+ * @param {string} method - Thrift method name (e.g., 'findNotesMetadata')
+ * @param {Object} data - Request data containing auth token and parameters
  * @param {Object} tokenData - OAuth token data
  * @returns {Promise<Object>} API response
  */
-function makeNoteStoreRequest(endpoint, data, tokenData) {
-  return new Promise((resolve, reject) => {
-    // Use the note store URL from the token data
-    const noteStoreUrl = tokenData.edamNoteStoreUrl;
-    if (!noteStoreUrl) {
-      reject(new Error('Note store URL not available in token data'));
-      return;
+async function makeNoteStoreRequest(method, data, tokenData) {
+  // Use the note store URL from the token data
+  const noteStoreUrl = tokenData.edamNoteStoreUrl;
+  if (!noteStoreUrl) {
+    throw new Error('Note store URL not available in token data');
+  }
+  
+  console.log(`🔧 Thrift API call: ${method}`);
+  logEvernoteRequest(method, data);
+  
+  let connection = null;
+  
+  try {
+    // Create Thrift client connection
+    connection = createNoteStoreClient(noteStoreUrl);
+    
+    // Prepare parameters for Thrift call
+    // First parameter is always the authentication token
+    const params = [data.authenticationToken];
+    
+    // Add method-specific parameters
+    switch (method) {
+      case 'findNotesMetadata':
+        params.push(data.filter, data.offset, data.maxNotes, data.resultSpec);
+        break;
+      case 'getNote':
+        params.push(data.guid, data.withContent, data.withResourcesData, 
+                   data.withResourcesRecognition, data.withResourcesAlternateData);
+        break;
+      case 'getNoteContent':
+        params.push(data.guid);
+        break;
+      case 'listTags':
+        // No additional parameters needed
+        break;
+      case 'getNotebook':
+        params.push(data.guid);
+        break;
+      default:
+        // For other methods, pass all data fields as parameters
+        Object.keys(data).forEach(key => {
+          if (key !== 'authenticationToken') {
+            params.push(data[key]);
+          }
+        });
     }
     
-    const url = new URL(noteStoreUrl + endpoint);
+    // Make the Thrift method call
+    const response = await callThriftMethod(connection, method, params);
     
-    // Prepare request data
-    const postData = JSON.stringify(data);
+    logEvernoteResponse(method, response, 200);
+    console.log(`✅ Thrift call ${method} completed successfully`);
     
-    const options = {
-      hostname: url.hostname,
-      port: url.port || 443,
-      path: url.pathname + url.search,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': postData.length,
-        'Authorization': `Bearer ${tokenData.accessToken}`,
-        'User-Agent': 'evernote-mcp-server/1.0.0'
-      }
-    };
+    return response;
     
-    const req = https.request(options, (res) => {
-      let responseData = '';
-      
-      res.on('data', (chunk) => {
-        responseData += chunk;
-      });
-      
-      res.on('end', () => {
-        try {
-          if (res.statusCode === 200) {
-            const parsed = JSON.parse(responseData);
-            resolve(parsed);
-          } else {
-            console.error('❌ Evernote API Error:', res.statusCode, responseData);
-            // Log API error response in dev mode
-            if (DEV_MODE) {
-              logEvernoteResponse(endpoint, responseData, res.statusCode);
-            }
-            reject(new Error(`Evernote API Error: ${res.statusCode} - ${responseData}`));
-          }
-        } catch (parseError) {
-          console.error('❌ Failed to parse Evernote API response:', parseError.message);
-          if (DEV_MODE) {
-            console.log('📨 Raw response data:', responseData);
-          }
-          reject(new Error('Invalid response from Evernote API'));
-        }
-      });
-    });
-    
-    req.on('error', (error) => {
-      console.error('❌ Network error calling Evernote API:', error.message);
-      reject(error);
-    });
-    
-    req.write(postData);
-    req.end();
-  });
+  } catch (error) {
+    console.error(`❌ Thrift call ${method} failed:`, error.message);
+    if (DEV_MODE) {
+      logEvernoteResponse(method, { error: error.message }, 500);
+    }
+    throw new Error(`Thrift API Error: ${error.message}`);
+  } finally {
+    // Always close the connection
+    if (connection) {
+      closeConnection(connection);
+    }
+  }
 }
 
 /**
@@ -293,9 +296,7 @@ async function createSearch(args, tokenData) {
     };
     
     console.log('🌐 Calling Evernote findNotesMetadata API...');
-    logEvernoteRequest('/findNotesMetadata', requestData);
-    const response = await makeNoteStoreRequest('/findNotesMetadata', requestData, tokenData);
-    logEvernoteResponse('/findNotesMetadata', response, 200);
+    const response = await makeNoteStoreRequest('findNotesMetadata', requestData, tokenData);
     
     // Process the response
     const notes = response.notes || [];
@@ -356,6 +357,7 @@ async function createSearch(args, tokenData) {
 module.exports = {
   createSearch,
   buildSearchQuery,
+  makeNoteStoreRequest,
   logToolInvocation,
   createMCPResponse,
   redactSensitiveInfo,

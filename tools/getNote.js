@@ -4,81 +4,8 @@
  */
 
 const https = require('https');
-const { logToolInvocation, createMCPResponse, logEvernoteRequest, logEvernoteResponse, DEV_MODE } = require('./createSearch');
+const { makeNoteStoreRequest, logToolInvocation, createMCPResponse, logEvernoteRequest, logEvernoteResponse, DEV_MODE } = require('./createSearch');
 
-/**
- * Make authenticated request to Evernote NoteStore API
- * @param {string} endpoint - API endpoint path
- * @param {Object} data - Request data
- * @param {Object} tokenData - OAuth token data
- * @returns {Promise<Object>} API response
- */
-function makeNoteStoreRequest(endpoint, data, tokenData) {
-  return new Promise((resolve, reject) => {
-    // Use the note store URL from the token data
-    const noteStoreUrl = tokenData.edamNoteStoreUrl;
-    if (!noteStoreUrl) {
-      reject(new Error('Note store URL not available in token data'));
-      return;
-    }
-    
-    const url = new URL(noteStoreUrl + endpoint);
-    
-    // Prepare request data
-    const postData = JSON.stringify(data);
-    
-    const options = {
-      hostname: url.hostname,
-      port: url.port || 443,
-      path: url.pathname + url.search,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': postData.length,
-        'Authorization': `Bearer ${tokenData.accessToken}`,
-        'User-Agent': 'evernote-mcp-server/1.0.0'
-      }
-    };
-    
-    const req = https.request(options, (res) => {
-      let responseData = '';
-      
-      res.on('data', (chunk) => {
-        responseData += chunk;
-      });
-      
-      res.on('end', () => {
-        try {
-          if (res.statusCode === 200) {
-            const parsed = JSON.parse(responseData);
-            resolve(parsed);
-          } else {
-            console.error('❌ Evernote API Error:', res.statusCode, responseData);
-            // Log API error response in dev mode
-            if (DEV_MODE) {
-              logEvernoteResponse(endpoint, responseData, res.statusCode);
-            }
-            reject(new Error(`Evernote API Error: ${res.statusCode} - ${responseData}`));
-          }
-        } catch (parseError) {
-          console.error('❌ Failed to parse Evernote API response:', parseError.message);
-          if (DEV_MODE) {
-            console.log('📨 Raw response data:', responseData);
-          }
-          reject(new Error('Invalid response from Evernote API'));
-        }
-      });
-    });
-    
-    req.on('error', (error) => {
-      console.error('❌ Network error calling Evernote API:', error.message);
-      reject(error);
-    });
-    
-    req.write(postData);
-    req.end();
-  });
-}
 
 /**
  * Get note metadata by GUID
@@ -105,9 +32,7 @@ async function getNote(args, tokenData) {
     };
     
     console.log('🌐 Calling Evernote getNote API for GUID:', args.noteGuid);
-    logEvernoteRequest('/getNote', requestData);
-    const note = await makeNoteStoreRequest('/getNote', requestData, tokenData);
-    logEvernoteResponse('/getNote', note, 200);
+    const note = await makeNoteStoreRequest('getNote', requestData, tokenData);
     
     console.log('✅ Retrieved note metadata');
     
@@ -121,9 +46,7 @@ async function getNote(args, tokenData) {
           guids: note.tagGuids
         };
         
-        logEvernoteRequest('/getTags', tagData);
-        const tagsResponse = await makeNoteStoreRequest('/getTags', tagData, tokenData);
-        logEvernoteResponse('/getTags', tagsResponse, 200);
+        const tagsResponse = await makeNoteStoreRequest('listTags', tagData, tokenData);
         tagNames = tagsResponse.map(tag => tag.name);
         console.log('✅ Resolved tag names:', tagNames);
       } catch (tagError) {
@@ -142,9 +65,7 @@ async function getNote(args, tokenData) {
           guid: note.notebookGuid
         };
         
-        logEvernoteRequest('/getNotebook', notebookData);
-        const notebook = await makeNoteStoreRequest('/getNotebook', notebookData, tokenData);
-        logEvernoteResponse('/getNotebook', notebook, 200);
+        const notebook = await makeNoteStoreRequest('getNotebook', notebookData, tokenData);
         notebookName = notebook.name;
         console.log('✅ Resolved notebook name:', notebookName);
       } catch (notebookError) {

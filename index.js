@@ -52,6 +52,21 @@ app.get('/', (req, res) => {
 });
 
 /**
+ * MCP manifest endpoint - GET request to /mcp.json
+ * Serves the MCP tool manifest file for Claude Desktop integration
+ */
+app.get('/mcp.json', (req, res) => {
+  try {
+    const mcpManifest = fs.readFileSync('./mcp.json', 'utf8');
+    const manifestData = JSON.parse(mcpManifest);
+    res.json(manifestData);
+  } catch (error) {
+    console.error('❌ Error serving MCP manifest:', error.message);
+    res.status(500).json({ error: 'Failed to load MCP manifest' });
+  }
+});
+
+/**
  * OAuth callback endpoint - handles Evernote authorization response
  * Completes the OAuth token exchange process
  */

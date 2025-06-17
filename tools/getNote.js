@@ -31,16 +31,16 @@ async function getNote(args, tokenData) {
       withResourcesAlternateData: false
     };
     
-    console.log('🌐 Calling Evernote getNote API for GUID:', args.noteGuid);
+    console.error('🌐 Calling Evernote getNote API for GUID:', args.noteGuid);
     const note = await makeNoteStoreRequest('getNote', requestData, tokenData);
     
-    console.log('✅ Retrieved note metadata');
+    console.error('✅ Retrieved note metadata');
     
     // Get tag names if we have tag GUIDs
     let tagNames = [];
     if (note.tagGuids && note.tagGuids.length > 0) {
       try {
-        console.log('🏷️ Resolving tag names...');
+        console.error('🏷️ Resolving tag names...');
         const tagData = {
           authenticationToken: tokenData.accessToken,
           guids: note.tagGuids
@@ -48,9 +48,9 @@ async function getNote(args, tokenData) {
         
         const tagsResponse = await makeNoteStoreRequest('listTags', tagData, tokenData);
         tagNames = tagsResponse.map(tag => tag.name);
-        console.log('✅ Resolved tag names:', tagNames);
+        console.error('✅ Resolved tag names:', tagNames);
       } catch (tagError) {
-        console.warn('⚠️ Failed to resolve tag names:', tagError.message);
+        console.error('⚠️ Failed to resolve tag names:', tagError.message);
         // Continue without tag names
       }
     }
@@ -59,7 +59,7 @@ async function getNote(args, tokenData) {
     let notebookName = null;
     if (note.notebookGuid) {
       try {
-        console.log('📚 Resolving notebook name...');
+        console.error('📚 Resolving notebook name...');
         const notebookData = {
           authenticationToken: tokenData.accessToken,
           guid: note.notebookGuid
@@ -67,9 +67,9 @@ async function getNote(args, tokenData) {
         
         const notebook = await makeNoteStoreRequest('getNotebook', notebookData, tokenData);
         notebookName = notebook.name;
-        console.log('✅ Resolved notebook name:', notebookName);
+        console.error('✅ Resolved notebook name:', notebookName);
       } catch (notebookError) {
-        console.warn('⚠️ Failed to resolve notebook name:', notebookError.message);
+        console.error('⚠️ Failed to resolve notebook name:', notebookError.message);
         // Continue without notebook name
       }
     }

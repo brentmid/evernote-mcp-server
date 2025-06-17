@@ -20,7 +20,7 @@ const Types = require('./gen-nodejs/Types_types');
 function createNoteStoreClient(noteStoreUrl) {
   const url = new URL(noteStoreUrl);
   
-  console.log(`🔧 Creating real Thrift connection to: ${url.hostname}:${url.port || 443}${url.pathname}`);
+  console.error(`🔧 Creating real Thrift connection to: ${url.hostname}:${url.port || 443}${url.pathname}`);
   
   // Create HTTPS connection for Thrift
   const connectionOptions = {
@@ -44,10 +44,10 @@ function createNoteStoreClient(noteStoreUrl) {
   });
   
   connection.on('connect', () => {
-    console.log('✅ Real Thrift connection established');
+    console.error('✅ Real Thrift connection established');
   });
   
-  console.log('✅ Real Thrift client created');
+  console.error('✅ Real Thrift client created');
   return { client, connection };
 }
 
@@ -62,7 +62,7 @@ function callThriftMethod(clientData, method, params = []) {
   return new Promise((resolve, reject) => {
     try {
       const { client } = clientData;
-      console.log(`🔧 Real Thrift call: ${method} with ${params.length} parameters`);
+      console.error(`🔧 Real Thrift call: ${method} with ${params.length} parameters`);
       
       // Call the appropriate method on the real Thrift client
       switch (method) {
@@ -73,7 +73,7 @@ function callThriftMethod(clientData, method, params = []) {
               console.error(`❌ Thrift ${method} error:`, err);
               reject(err);
             } else {
-              console.log(`✅ Thrift ${method} completed successfully`);
+              console.error(`✅ Thrift ${method} completed successfully`);
               resolve(result);
             }
           });
@@ -86,7 +86,7 @@ function callThriftMethod(clientData, method, params = []) {
               console.error(`❌ Thrift ${method} error:`, err);
               reject(err);
             } else {
-              console.log(`✅ Thrift ${method} completed successfully`);
+              console.error(`✅ Thrift ${method} completed successfully`);
               resolve(result);
             }
           });
@@ -99,7 +99,7 @@ function callThriftMethod(clientData, method, params = []) {
               console.error(`❌ Thrift ${method} error:`, err);
               reject(err);
             } else {
-              console.log(`✅ Thrift ${method} completed successfully`);
+              console.error(`✅ Thrift ${method} completed successfully`);
               // getNoteContent returns just the content string, so we need to wrap it
               resolve({ content: result });
             }
@@ -113,7 +113,7 @@ function callThriftMethod(clientData, method, params = []) {
               console.error(`❌ Thrift ${method} error:`, err);
               reject(err);
             } else {
-              console.log(`✅ Thrift ${method} completed successfully`);
+              console.error(`✅ Thrift ${method} completed successfully`);
               resolve(result);
             }
           });
@@ -126,7 +126,7 @@ function callThriftMethod(clientData, method, params = []) {
               console.error(`❌ Thrift ${method} error:`, err);
               reject(err);
             } else {
-              console.log(`✅ Thrift ${method} completed successfully`);
+              console.error(`✅ Thrift ${method} completed successfully`);
               resolve(result);
             }
           });
@@ -139,7 +139,7 @@ function callThriftMethod(clientData, method, params = []) {
               console.error(`❌ Thrift ${method} error:`, err);
               reject(err);
             } else {
-              console.log(`✅ Thrift ${method} completed successfully`);
+              console.error(`✅ Thrift ${method} completed successfully`);
               resolve(result);
             }
           });
@@ -164,9 +164,10 @@ function callThriftMethod(clientData, method, params = []) {
 function closeConnection(clientData) {
   if (clientData && clientData.connection) {
     try {
-      console.log('🔧 Closing Thrift connection...');
-      clientData.connection.end();
-      console.log('✅ Thrift connection closed');
+      console.error('🔧 Closing Thrift connection...');
+      // HTTP connections don't need explicit cleanup for one-off requests
+      // The connection will be closed automatically by the HTTP client
+      console.error('✅ Thrift connection closed');
     } catch (error) {
       console.error('❌ Error closing Thrift connection:', error.message);
     }

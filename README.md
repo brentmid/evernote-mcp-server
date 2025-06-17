@@ -149,7 +149,7 @@ Edit the Claude Desktop configuration file to include your Evernote MCP server:
   "mcpServers": {
     "evernote": {
       "command": "node",
-      "args": ["/Users/brent/bin/evernote-mcp-server/index.js"],
+      "args": ["/Users/brent/bin/evernote-mcp-server/mcp-server.js"],
       "env": {
         "EVERNOTE_CONSUMER_KEY": "your-actual-consumer-key",
         "EVERNOTE_CONSUMER_SECRET": "your-actual-consumer-secret"
@@ -188,19 +188,19 @@ Once connected, Claude Desktop will have access to these Evernote tools:
 
 ### Troubleshooting Claude Desktop Connection
 
-**Connection fails:**
-- Verify your server is running (`ps aux | grep "node index.js"`)
+**Connection fails with "upstream connect error":**
+- Restart Claude Desktop completely (⌘+Q then reopen)
 - Check credentials are correctly set in `claude_desktop_config.json`
-- Ensure the server path in `args` is absolute and correct
-- Restart Claude Desktop after configuration changes
+- Ensure the server path in `args` is absolute and correct (`mcp-server.js` not `index.js`)
+- Test MCP server standalone: `echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node mcp-server.js`
 
 **Tools not visible:**
 - Wait a few seconds after Claude Desktop restart
 - Check Claude Desktop console for error messages
-- Verify OAuth authentication completed successfully (check server logs)
+- Verify OAuth authentication completed successfully by running `node index.js` first
 
 **Authentication errors:**
-- Complete OAuth flow by running the server standalone first
+- Complete OAuth flow by running the HTTPS server standalone first: `node index.js`
 - Check tokens are stored in macOS Keychain (`Keychain Access.app`)
 - Verify Evernote API credentials are valid and active
 
@@ -221,7 +221,7 @@ Then use this simpler Claude Desktop configuration:
   "mcpServers": {
     "evernote": {
       "command": "node",
-      "args": ["/Users/brent/bin/evernote-mcp-server/index.js"]
+      "args": ["/Users/brent/bin/evernote-mcp-server/mcp-server.js"]
     }
   }
 }
@@ -258,10 +258,13 @@ DEV_MODE=true npx node index.js
 - **Evernote API Responses**: Response summaries and error details
 - **Token Redaction**: Automatic redaction of sensitive information (tokens, secrets, keys)
 - **Error Details**: Enhanced error logging with raw response data
+- **Stderr Logging**: All debug messages go to stderr to avoid interfering with JSON-RPC protocol
 
 **Normal vs Debug Mode:**
-- **Normal**: Basic logging with key information only
-- **Debug**: Detailed JSON logging with redacted sensitive data
+- **Normal**: Basic logging with key information only (to stderr)
+- **Debug**: Detailed JSON logging with redacted sensitive data (to stderr)
+
+**Important**: All emoji-based debug messages are sent to stderr, not stdout, ensuring clean JSON-RPC communication with Claude Desktop.
 
 Example debug output:
 ```

@@ -129,10 +129,10 @@ async function getNoteContent(args, tokenData) {
       withResourcesAlternateData: false
     };
     
-    console.log('🌐 Calling Evernote getNote API for content, GUID:', args.noteGuid);
-    const note = await makeNoteStoreRequest('getNoteContent', requestData, tokenData);
+    console.error('🌐 Calling Evernote getNote API for content, GUID:', args.noteGuid);
+    const note = await makeNoteStoreRequest('getNote', requestData, tokenData);
     
-    console.log('✅ Retrieved note content');
+    console.error('✅ Retrieved note content');
     
     // Process content based on requested format
     let processedContent;
@@ -185,7 +185,7 @@ async function getNoteContent(args, tokenData) {
       })) : []
     };
     
-    console.log(`✅ Processed content as ${format} (${processedContent.length} characters)`);
+    console.error(`✅ Processed content as ${format} (${processedContent.length} characters)`);
     return createMCPResponse('success', result);
     
   } catch (error) {

@@ -89,11 +89,11 @@ async function getSearch(args, tokenData) {
     
     // If searchId is provided, try to get from cache first
     if (searchId) {
-      console.log('📂 Looking for cached results for searchId:', searchId);
+      console.error('📂 Looking for cached results for searchId:', searchId);
       const cached = getCachedResults(searchId);
       
       if (cached) {
-        console.log('✅ Found cached results');
+        console.error('✅ Found cached results');
         const responseData = {
           ...cached.results.data, // Extract data from the MCP response
           searchId: searchId,
@@ -102,7 +102,7 @@ async function getSearch(args, tokenData) {
         };
         return createMCPResponse('success', responseData);
       } else {
-        console.log('❌ No cached results found or expired');
+        console.error('❌ No cached results found or expired');
         // If we have a searchId but no cached results, we need the original search args
         // For now, return an error since we can't reconstruct the search
         return createMCPResponse('error', null, `Search ID ${searchId} not found or expired. Please create a new search.`);
@@ -117,13 +117,13 @@ async function getSearch(args, tokenData) {
       }
       
       searchId = generateSearchId(args);
-      console.log('🆔 Generated searchId:', searchId);
+      console.error('🆔 Generated searchId:', searchId);
     }
     
     // Check cache one more time with generated ID
     const cached = getCachedResults(searchId);
     if (cached) {
-      console.log('✅ Found cached results for generated searchId');
+      console.error('✅ Found cached results for generated searchId');
       const responseData = {
         ...cached.results.data, // Extract data from the MCP response
         searchId: searchId,
@@ -134,7 +134,7 @@ async function getSearch(args, tokenData) {
     }
     
     // No cached results, perform new search
-    console.log('🔍 Performing new search...');
+    console.error('🔍 Performing new search...');
     const results = await createSearch(searchArgs, tokenData);
     
     // Check if the search was successful
@@ -145,7 +145,7 @@ async function getSearch(args, tokenData) {
     // Cache the results
     cacheSearchResults(searchId, results, searchArgs);
     
-    console.log('✅ Search completed and cached');
+    console.error('✅ Search completed and cached');
     const responseData = {
       ...results.data,
       searchId: searchId,

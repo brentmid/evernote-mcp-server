@@ -63,7 +63,7 @@ async function makeNoteStoreRequest(method, data, tokenData) {
     throw new Error('Note store URL not available in token data');
   }
   
-  console.log(`🔧 Thrift API call: ${method}`);
+  console.error(`🔧 Thrift API call: ${method}`);
   logEvernoteRequest(method, data);
   
   let connection = null;
@@ -107,7 +107,7 @@ async function makeNoteStoreRequest(method, data, tokenData) {
     const response = await callThriftMethod(connection, method, params);
     
     logEvernoteResponse(method, response, 200);
-    console.log(`✅ Thrift call ${method} completed successfully`);
+    console.error(`✅ Thrift call ${method} completed successfully`);
     
     return response;
     
@@ -164,12 +164,12 @@ function redactSensitiveInfo(obj) {
  */
 function logToolInvocation(toolName, args) {
   const timestamp = new Date().toISOString();
-  console.log(`🔧 [${timestamp}] MCP Tool Invocation: ${toolName}`);
+  console.error(`🔧 [${timestamp}] MCP Tool Invocation: ${toolName}`);
   
   if (DEV_MODE) {
-    console.log(`📥 Args:`, JSON.stringify(redactSensitiveInfo(args), null, 2));
+    console.error(`📥 Args:`, JSON.stringify(redactSensitiveInfo(args), null, 2));
   } else {
-    console.log(`📥 Args: [${Object.keys(args || {}).join(', ')}]`);
+    console.error(`📥 Args: [${Object.keys(args || {}).join(', ')}]`);
   }
 }
 
@@ -182,8 +182,8 @@ function logEvernoteRequest(endpoint, requestData) {
   if (!DEV_MODE) return;
   
   const timestamp = new Date().toISOString();
-  console.log(`🌐 [${timestamp}] Evernote API Request: ${endpoint}`);
-  console.log(`📤 Request:`, JSON.stringify(redactSensitiveInfo(requestData), null, 2));
+  console.error(`🌐 [${timestamp}] Evernote API Request: ${endpoint}`);
+  console.error(`📤 Request:`, JSON.stringify(redactSensitiveInfo(requestData), null, 2));
 }
 
 /**
@@ -196,7 +196,7 @@ function logEvernoteResponse(endpoint, responseData, statusCode) {
   if (!DEV_MODE) return;
   
   const timestamp = new Date().toISOString();
-  console.log(`🔄 [${timestamp}] Evernote API Response: ${endpoint} (${statusCode})`);
+  console.error(`🔄 [${timestamp}] Evernote API Response: ${endpoint} (${statusCode})`);
   
   if (statusCode === 200) {
     // For successful responses, show a summary instead of full data
@@ -208,12 +208,12 @@ function logEvernoteResponse(endpoint, responseData, statusCode) {
         title: responseData.title,
         guid: responseData.guid
       };
-      console.log(`📨 Response Summary:`, JSON.stringify(summary, null, 2));
+      console.error(`📨 Response Summary:`, JSON.stringify(summary, null, 2));
     } else {
-      console.log(`📨 Response:`, responseData);
+      console.error(`📨 Response:`, responseData);
     }
   } else {
-    console.log(`📨 Error Response:`, responseData);
+    console.error(`📨 Error Response:`, responseData);
   }
 }
 
@@ -233,9 +233,9 @@ function createMCPResponse(status, data = null, error = null) {
   };
   
   if (DEV_MODE) {
-    console.log(`📤 MCP Response:`, JSON.stringify(response, null, 2));
+    console.error(`📤 MCP Response:`, JSON.stringify(response, null, 2));
   } else {
-    console.log(`📤 MCP Response: ${status} (${data ? 'with data' : error ? 'with error' : 'empty'})`);
+    console.error(`📤 MCP Response: ${status} (${data ? 'with data' : error ? 'with error' : 'empty'})`);
   }
   return response;
 }
@@ -257,7 +257,7 @@ async function createSearch(args, tokenData) {
   try {
     // Build search query using Evernote search grammar
     const searchQuery = buildSearchQuery(args);
-    console.log('📝 Built search query:', searchQuery);
+    console.error('📝 Built search query:', searchQuery);
     
     // Prepare NoteFilter for the API call
     const noteFilter = {
@@ -295,14 +295,14 @@ async function createSearch(args, tokenData) {
       }
     };
     
-    console.log('🌐 Calling Evernote findNotesMetadata API...');
+    console.error('🌐 Calling Evernote findNotesMetadata API...');
     const response = await makeNoteStoreRequest('findNotesMetadata', requestData, tokenData);
     
     // Process the response
     const notes = response.notes || [];
     const totalFound = response.totalNotes || 0;
     
-    console.log(`✅ Found ${notes.length} notes (${totalFound} total)`);
+    console.error(`✅ Found ${notes.length} notes (${totalFound} total)`);
     
     // Format results according to MCP schema
     const results = notes.map(note => ({
@@ -322,7 +322,7 @@ async function createSearch(args, tokenData) {
     // If content was requested, we'd need to make additional getNoteContent calls
     // For now, we'll indicate that content requires a separate call
     if (args.includeContent) {
-      console.log('⚠️ Content inclusion requested but requires separate getNoteContent calls');
+      console.error('⚠️ Content inclusion requested but requires separate getNoteContent calls');
     }
     
     const responseData = {

@@ -72,7 +72,7 @@ app.get('/mcp.json', (req, res) => {
  */
 app.get('/oauth/callback', async (req, res) => {
   try {
-    console.log('🔄 OAuth callback received');
+    console.error('🔄 OAuth callback received');
     // Debug logging (uncomment for troubleshooting)
     // console.log('📝 Query parameters:', req.query);
     // console.log('📝 Current OAuth state keys:', Object.keys(oauthState));
@@ -102,7 +102,7 @@ app.get('/oauth/callback', async (req, res) => {
       success: true
     });
     
-    console.log('🎉 OAuth authentication completed successfully');
+    console.error('🎉 OAuth authentication completed successfully');
     
   } catch (error) {
     console.error('❌ OAuth callback error:', error.message);
@@ -127,7 +127,7 @@ app.post('/mcp', async (req, res) => {
       });
     }
     
-    console.log('🔄 MCP request received:', req.body);
+    console.error('🔄 MCP request received:', req.body);
     
     // Validate request structure
     if (!req.body || typeof req.body !== 'object') {
@@ -181,7 +181,7 @@ app.post('/mcp', async (req, res) => {
       data: result
     });
     
-    console.log(`✅ MCP command "${command}" completed successfully`);
+    console.error(`✅ MCP command "${command}" completed successfully`);
     
   } catch (error) {
     console.error('❌ MCP request error:', error.message);
@@ -206,7 +206,7 @@ const sslOptions = {
  */
 async function startServer() {
   try {
-    console.log('🚀 Starting Evernote MCP Server...');
+    console.error('🚀 Starting Evernote MCP Server...');
     
     // Check authentication status
     const authResult = await auth.authenticate();
@@ -214,18 +214,18 @@ async function startServer() {
     if (authResult.needsCallback) {
       // Store request token secret for callback
       oauthState[authResult.requestToken] = authResult.requestTokenSecret;
-      console.log('⏳ Waiting for OAuth callback...');
+      console.error('⏳ Waiting for OAuth callback...');
     } else {
-      console.log('✅ Authentication ready');
+      console.error('✅ Authentication ready');
     }
     
     // Start HTTPS server
     https.createServer(sslOptions, app).listen(port, () => {
-      console.log(`🌐 Evernote MCP Server listening on HTTPS port ${port}`);
-      console.log(`📋 Health check: https://localhost:${port}/`);
+      console.error(`🌐 Evernote MCP Server listening on HTTPS port ${port}`);
+      console.error(`📋 Health check: https://localhost:${port}/`);
       
       if (authResult.needsCallback) {
-        console.log('🔐 Complete authentication in your browser, then the server will be ready');
+        console.error('🔐 Complete authentication in your browser, then the server will be ready');
       }
     });
     

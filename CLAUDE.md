@@ -130,7 +130,7 @@ Claude Desktop requires configuration in its settings file to connect to the MCP
   "mcpServers": {
     "evernote": {
       "command": "node",
-      "args": ["/Users/brent/bin/evernote-mcp-server/index.js"],
+      "args": ["/Users/brent/bin/evernote-mcp-server/mcp-server.js"],
       "env": {
         "EVERNOTE_CONSUMER_KEY": "your-actual-consumer-key",
         "EVERNOTE_CONSUMER_SECRET": "your-actual-consumer-secret"
@@ -142,8 +142,8 @@ Claude Desktop requires configuration in its settings file to connect to the MCP
 
 ### Integration Steps
 
-1. **Complete Server Setup**: Follow development commands to set up the server, certificates, and complete OAuth flow
-2. **Configure Claude Desktop**: Edit the configuration file with your credentials and absolute path
+1. **Complete Server Setup**: Follow development commands to set up the server, certificates, and complete OAuth flow using `node index.js`
+2. **Configure Claude Desktop**: Edit the configuration file with your credentials and absolute path (use `mcp-server.js` not `index.js`)
 3. **Restart Claude Desktop**: Quit completely (⌘+Q) and reopen
 4. **Test Integration**: Ask Claude to search your Evernote notes
 

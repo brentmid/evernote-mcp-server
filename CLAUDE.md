@@ -130,7 +130,7 @@ Claude Desktop requires configuration in its settings file to connect to the MCP
   "mcpServers": {
     "evernote": {
       "command": "node",
-      "args": ["/Users/brent/bin/evernote-mcp-server/mcp-server.js"],
+      "args": ["/path/to/your/evernote-mcp-server/mcp-server.js"],
       "env": {
         "EVERNOTE_CONSUMER_KEY": "your-actual-consumer-key",
         "EVERNOTE_CONSUMER_SECRET": "your-actual-consumer-secret"

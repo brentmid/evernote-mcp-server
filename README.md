@@ -149,7 +149,7 @@ Edit the Claude Desktop configuration file to include your Evernote MCP server:
   "mcpServers": {
     "evernote": {
       "command": "node",
-      "args": ["/Users/brent/bin/evernote-mcp-server/mcp-server.js"],
+      "args": ["/path/to/your/evernote-mcp-server/mcp-server.js"],
       "env": {
         "EVERNOTE_CONSUMER_KEY": "your-actual-consumer-key",
         "EVERNOTE_CONSUMER_SECRET": "your-actual-consumer-secret"
@@ -221,7 +221,7 @@ Then use this simpler Claude Desktop configuration:
   "mcpServers": {
     "evernote": {
       "command": "node",
-      "args": ["/Users/brent/bin/evernote-mcp-server/mcp-server.js"]
+      "args": ["/path/to/your/evernote-mcp-server/mcp-server.js"]
     }
   }
 }

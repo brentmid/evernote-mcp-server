@@ -15,6 +15,14 @@ const fs = require('fs');
 const auth = require('./auth');
 
 /**
+ * Import MCP tools
+ */
+const { createSearch } = require('./tools/createSearch');
+const { getSearch } = require('./tools/getSearch');
+const { getNote } = require('./tools/getNote');
+const { getNoteContent } = require('./tools/getNoteContent');
+
+/**
  * Create an Express application instance
  */
 const app = express();
@@ -87,9 +95,11 @@ app.get('/oauth/callback', async (req, res) => {
   }
 });
 
+// All MCP tools are now imported from their respective files
+
 /**
  * MCP (Model Context Protocol) endpoint - POST request to /mcp
- * Logs the incoming request body and returns a confirmation response
+ * Dispatches requests based on command field and routes to appropriate functions
  */
 app.post('/mcp', async (req, res) => {
   try {
@@ -102,16 +112,68 @@ app.post('/mcp', async (req, res) => {
       });
     }
     
-    console.log('MCP request received:', req.body);
-    res.json({ 
-      message: 'MCP request received',
-      received: true,
-      authenticated: true
+    console.log('🔄 MCP request received:', req.body);
+    
+    // Validate request structure
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'Request body must be a JSON object'
+      });
+    }
+    
+    const { command, args = {} } = req.body;
+    
+    // Validate command field
+    if (!command || typeof command !== 'string') {
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'Missing or invalid "command" field'
+      });
+    }
+    
+    // Dispatch to appropriate function based on command
+    let result;
+    switch (command) {
+      case 'createSearch':
+        result = await createSearch(args, tokenData);
+        break;
+        
+      case 'getSearch':
+        result = await getSearch(args, tokenData);
+        break;
+        
+      case 'getNote':
+        result = await getNote(args, tokenData);
+        break;
+        
+      case 'getNoteContent':
+        result = await getNoteContent(args, tokenData);
+        break;
+        
+      default:
+        return res.status(400).json({
+          error: 'Unknown command',
+          message: `Command "${command}" is not supported`,
+          supportedCommands: ['createSearch', 'getSearch', 'getNote', 'getNoteContent']
+        });
+    }
+    
+    // Return successful response
+    res.json({
+      success: true,
+      command: command,
+      data: result
     });
+    
+    console.log(`✅ MCP command "${command}" completed successfully`);
     
   } catch (error) {
     console.error('❌ MCP request error:', error.message);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message
+    });
   }
 });
 

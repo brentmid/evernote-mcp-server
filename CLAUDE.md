@@ -20,6 +20,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 
 - **Install dependencies**: `npm install`
 - **Set environment variables**: Export `EVERNOTE_CONSUMER_KEY` and `EVERNOTE_CONSUMER_SECRET`
+- **Enable debug logging** (optional): `export DEV_MODE=true` for detailed API request/response logging
 - **Generate SSL certificates**: `mkdir cert && openssl req -x509 -newkey rsa:4096 -keyout cert/localhost.key -out cert/localhost.crt -days 365 -nodes -subj "/C=US/ST=Local/L=Local/O=Local/OU=Local/CN=localhost"`
 - **Run server**: `npx node index.js` (requires SSL certificates and Evernote API credentials)
 
@@ -39,7 +40,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - Browser-based OAuth 1.0a flow launches automatically on first run
 - **Production Environment**: Uses Evernote production API (sandbox decommissioned)
 - Designed for Claude Desktop MCP integration with future LLM compatibility
-- Debug logging available for development and troubleshooting
+- **Debug Logging**: Configurable via `DEV_MODE` environment variable (detailed API logging with token redaction)
 - SSL certificates stored in cert/ directory (excluded from git)
 - **Dependencies**: `express`, `keytar` (for macOS Keychain), built-in `crypto`, `https`
 - **Dev Dependencies**: `jest`, `supertest` for comprehensive testing
@@ -87,3 +88,49 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - Authentication flow validation (existing vs new token scenarios)
 - Error handling (network failures, malformed requests, access denials)
 - Configuration validation (endpoints, environment variables)
+
+## Current Implementation Status
+
+### Completed Features ✅
+- Complete OAuth 1.0a implementation with Evernote production endpoints
+- HTTPS server with self-signed certificates for local development  
+- macOS Keychain integration for secure token storage
+- Comprehensive test suite (38 tests) with extensive mocking
+- MCP tool manifest (mcp.json) with complete specification  
+- POST /mcp endpoint with command dispatching
+- Real Evernote API implementation for createSearch tool
+- Four MCP tools defined: createSearch, getSearch, getNote, getNoteContent
+- createSearch tool with full Evernote NoteStore API integration
+- Support for advanced search filters (notebook, tags, date ranges)
+- Modular tool architecture in tools/ directory
+
+### In Progress 🚧
+- Implementation of getSearch, getNote, getNoteContent tools with real API integration
+
+### Planned Features 📋
+- Enhanced error handling and logging
+- Support for additional Evernote search filters
+- Integration with Claude Desktop
+- Performance optimizations for large note collections
+
+## File Structure
+
+```
+evernote-mcp-server/
+├── index.js              # Main HTTPS server with OAuth integration
+├── auth.js               # OAuth 1.0a authentication module
+├── mcp.json              # MCP tool manifest for Claude Desktop
+├── tools/                # MCP tool implementations
+│   └── createSearch.js   # Real Evernote API search implementation
+├── tests/                # Comprehensive test suite (38 tests)
+│   ├── auth.test.js      # OAuth authentication tests
+│   ├── server.test.js    # Express server route tests
+│   ├── integration.test.js # End-to-end workflow tests
+│   └── setup.js          # Global test configuration
+├── cert/                 # SSL certificates (excluded from git)
+├── package.json          # Dependencies and scripts
+├── jest.config.js        # Jest test configuration
+├── .gitignore            # Git ignore patterns
+├── README.md             # Detailed project documentation
+└── CLAUDE.md             # This file - guidance for Claude Code
+```

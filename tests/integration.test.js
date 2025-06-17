@@ -191,20 +191,35 @@ describe('OAuth Flow Integration Tests', () => {
 
   describe('Token Lifecycle', () => {
     test('should handle token retrieval and reuse', async () => {
-      // Simulate existing token in keychain
+      // Simulate existing token in keychain with edam data
+      const mockEdamData = JSON.stringify({
+        shard: 's123',
+        userId: '12345',
+        expires: '1234567890',
+        noteStoreUrl: 'https://www.evernote.com/shard/s123/notestore',
+        webApiUrlPrefix: 'https://www.evernote.com/shard/s123/'
+      });
+      
       keytar.getPassword
         .mockResolvedValueOnce('existing_access_token')
-        .mockResolvedValueOnce('existing_token_secret');
+        .mockResolvedValueOnce('existing_token_secret')
+        .mockResolvedValueOnce(mockEdamData);
       
       const result = await auth.getTokenFromKeychain();
       
       expect(result).toEqual({
         accessToken: 'existing_access_token',
-        tokenSecret: 'existing_token_secret'
+        tokenSecret: 'existing_token_secret',
+        edamShard: 's123',
+        edamUserId: '12345',
+        edamExpires: '1234567890',
+        edamNoteStoreUrl: 'https://www.evernote.com/shard/s123/notestore',
+        edamWebApiUrlPrefix: 'https://www.evernote.com/shard/s123/'
       });
       
       expect(keytar.getPassword).toHaveBeenCalledWith(auth.EVERNOTE_CONFIG.serviceName, 'access_token');
       expect(keytar.getPassword).toHaveBeenCalledWith(auth.EVERNOTE_CONFIG.serviceName, 'token_secret');
+      expect(keytar.getPassword).toHaveBeenCalledWith(auth.EVERNOTE_CONFIG.serviceName, 'edam_data');
     });
     
     test('should handle missing token scenario', async () => {

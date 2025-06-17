@@ -23,7 +23,7 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 - Uses **macOS Keychain** to securely store access tokens
 - **HTTPS-only server** with self-signed certificates for local development
 - Designed to work with **Claude Desktop MCP integrations**, with future-proofing for other LLMs (e.g., ChatGPT Desktop)
-- Toggleable **debug logging** to view incoming/outgoing requests for development and troubleshooting
+- **Configurable debug logging** via `DEV_MODE` environment variable with automatic token redaction for security
 - Easy to extend later for note creation, updates, or deletion
 
 ## 🧰 Tech Stack
@@ -77,6 +77,9 @@ Set your Evernote API credentials:
 export EVERNOTE_CONSUMER_KEY="your-consumer-key-here"
 export EVERNOTE_CONSUMER_SECRET="your-consumer-secret-here"
 
+# Optional: Enable detailed debug logging for development
+export DEV_MODE=true
+
 # Reload your shell or run:
 source ~/.zshrc
 ```
@@ -124,6 +127,45 @@ The server implements Evernote's OAuth 1.0a flow:
 5. **Storage**: Access token stored securely in macOS Keychain
 
 **Note**: The server uses Evernote's production environment (sandbox has been decommissioned by Evernote).
+
+## 🐛 Debug & Development
+
+### Debug Logging
+
+The server supports detailed debug logging via the `DEV_MODE` environment variable:
+
+```bash
+# Enable detailed debug logging
+export DEV_MODE=true
+
+# Or run with debug mode for a single session
+DEV_MODE=true npx node index.js
+```
+
+**Debug Features:**
+- **MCP Tool Invocations**: Detailed logging of all tool calls with timestamps
+- **Evernote API Requests**: Full request payloads and parameters  
+- **Evernote API Responses**: Response summaries and error details
+- **Token Redaction**: Automatic redaction of sensitive information (tokens, secrets, keys)
+- **Error Details**: Enhanced error logging with raw response data
+
+**Normal vs Debug Mode:**
+- **Normal**: Basic logging with key information only
+- **Debug**: Detailed JSON logging with redacted sensitive data
+
+Example debug output:
+```
+🔧 [2025-06-17T00:07:56.351Z] MCP Tool Invocation: createSearch
+📥 Args: {
+  "query": "Sea Pro boat",
+  "authenticationToken": "[REDACTED:19chars]"
+}
+🌐 [2025-06-17T00:07:57.123Z] Evernote API Request: /findNotesMetadata
+📤 Request: {
+  "filter": { "words": "Sea Pro boat" },
+  "authenticationToken": "[REDACTED:19chars]"
+}
+```
 
 ## 🧪 Testing
 

@@ -1,0 +1,409 @@
+{
+  "mcpVersion": "2025-03-26",
+  "name": "evernote-mcp-server",
+  "version": "1.0.0",
+  "description": "A Model Context Protocol server that provides secure access to Evernote notes and notebooks through OAuth 1.0a authentication",
+  "author": "brentmid",
+  "license": "MIT",
+  "homepage": "https://github.com/brentmid/evernote-mcp-server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brentmid/evernote-mcp-server.git"
+  },
+  "server": {
+    "command": "node",
+    "args": ["index.js"],
+    "env": {
+      "EVERNOTE_CONSUMER_KEY": "",
+      "EVERNOTE_CONSUMER_SECRET": ""
+    }
+  },
+  "capabilities": {
+    "tools": {}
+  },
+  "tools": [
+    {
+      "name": "createSearch",
+      "description": "Search for notes in Evernote using natural language queries",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Natural language search query (e.g., 'boat repair notes', 'meeting notes from last week')"
+          },
+          "maxResults": {
+            "type": "integer",
+            "description": "Maximum number of search results to return (default: 20, max: 100)",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Number of results to skip for pagination (default: 0)",
+            "minimum": 0,
+            "default": 0
+          },
+          "notebookName": {
+            "type": "string",
+            "description": "Optional: Name of specific notebook to search within"
+          },
+          "notebookGuid": {
+            "type": "string",
+            "description": "Optional: GUID of specific notebook to search within"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional: Array of tag names to filter by"
+          },
+          "createdAfter": {
+            "type": "string",
+            "format": "date",
+            "description": "Optional: Only return notes created after this date (YYYY-MM-DD)"
+          },
+          "updatedAfter": {
+            "type": "string",
+            "format": "date",
+            "description": "Optional: Only return notes updated after this date (YYYY-MM-DD)"
+          },
+          "includeContent": {
+            "type": "boolean",
+            "description": "Whether to include note content in results (default: false)",
+            "default": false
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "guid": {
+                  "type": "string",
+                  "description": "Unique identifier for the note"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Note title"
+                },
+                "created": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Note creation timestamp"
+                },
+                "updated": {
+                  "type": "string",
+                  "format": "date-time", 
+                  "description": "Note last modified timestamp"
+                },
+                "notebookGuid": {
+                  "type": "string",
+                  "description": "GUID of the notebook containing this note"
+                },
+                "contentLength": {
+                  "type": "integer",
+                  "description": "Length of note content in characters"
+                },
+                "updateSequenceNum": {
+                  "type": "integer",
+                  "description": "Evernote's internal update sequence number"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of tag GUIDs applied to the note (use getNote for tag names)"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Note content (if includeContent was true)"
+                }
+              }
+            }
+          },
+          "totalFound": {
+            "type": "integer",
+            "description": "Total number of notes matching the search"
+          },
+          "query": {
+            "type": "string",
+            "description": "The search query that was executed"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Number of results that were skipped"
+          },
+          "maxResults": {
+            "type": "integer",
+            "description": "Maximum number of results requested"
+          }
+        }
+      }
+    },
+    {
+      "name": "getSearch",
+      "description": "Get details about a previously executed search by its ID",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "searchId": {
+            "type": "string",
+            "description": "Unique identifier of the search to retrieve"
+          }
+        },
+        "required": ["searchId"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "searchId": {
+            "type": "string",
+            "description": "The search identifier"
+          },
+          "query": {
+            "type": "string",
+            "description": "The original search query"
+          },
+          "executedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the search was executed"
+          },
+          "resultCount": {
+            "type": "integer",
+            "description": "Number of results found"
+          },
+          "results": {
+            "type": "array",
+            "description": "Array of note summaries from the search",
+            "items": {
+              "type": "object",
+              "properties": {
+                "guid": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "updated": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "getNote",
+      "description": "Retrieve metadata and basic information for a specific note by its GUID",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "noteGuid": {
+            "type": "string",
+            "description": "The unique identifier (GUID) of the note to retrieve"
+          },
+          "includeContent": {
+            "type": "boolean",
+            "description": "Whether to include the full note content (default: false)",
+            "default": false
+          },
+          "includeResourceData": {
+            "type": "boolean",
+            "description": "Whether to include attachment/resource data (default: false)",
+            "default": false
+          }
+        },
+        "required": ["noteGuid"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "guid": {
+            "type": "string",
+            "description": "Note's unique identifier"
+          },
+          "title": {
+            "type": "string",
+            "description": "Note title"
+          },
+          "content": {
+            "type": "string",
+            "description": "Note content in ENML format (if includeContent was true)"
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Note creation timestamp"
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Note last modified timestamp"
+          },
+          "deleted": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Note deletion timestamp (if deleted)"
+          },
+          "notebookGuid": {
+            "type": "string",
+            "description": "GUID of the notebook containing this note"
+          },
+          "tagNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of tag names applied to the note"
+          },
+          "resources": {
+            "type": "array",
+            "description": "List of attachments/resources in the note",
+            "items": {
+              "type": "object",
+              "properties": {
+                "guid": {
+                  "type": "string"
+                },
+                "mime": {
+                  "type": "string"
+                },
+                "width": {
+                  "type": "integer"
+                },
+                "height": {
+                  "type": "integer"
+                },
+                "data": {
+                  "type": "string",
+                  "description": "Base64 encoded resource data (if includeResourceData was true)"
+                }
+              }
+            }
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Additional note attributes",
+            "properties": {
+              "sourceURL": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "latitude": {
+                "type": "number"
+              },
+              "longitude": {
+                "type": "number"
+              },
+              "altitude": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "getNoteContent",
+      "description": "Retrieve the full content of a specific note in a readable format",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "noteGuid": {
+            "type": "string",
+            "description": "The unique identifier (GUID) of the note to retrieve content for"
+          },
+          "format": {
+            "type": "string",
+            "enum": ["text", "html", "enml"],
+            "description": "Format to return the content in (default: text)",
+            "default": "text"
+          },
+          "includeResources": {
+            "type": "boolean",
+            "description": "Whether to include information about attachments/images (default: true)",
+            "default": true
+          }
+        },
+        "required": ["noteGuid"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "noteGuid": {
+            "type": "string",
+            "description": "The note's unique identifier"
+          },
+          "title": {
+            "type": "string",
+            "description": "Note title"
+          },
+          "content": {
+            "type": "string",
+            "description": "Note content in the requested format"
+          },
+          "format": {
+            "type": "string",
+            "description": "The format of the returned content"
+          },
+          "wordCount": {
+            "type": "integer",
+            "description": "Approximate word count of the content"
+          },
+          "resources": {
+            "type": "array",
+            "description": "Information about attachments and images in the note",
+            "items": {
+              "type": "object",
+              "properties": {
+                "guid": {
+                  "type": "string",
+                  "description": "Resource unique identifier"
+                },
+                "filename": {
+                  "type": "string",
+                  "description": "Original filename"
+                },
+                "mime": {
+                  "type": "string",
+                  "description": "MIME type of the resource"
+                },
+                "size": {
+                  "type": "integer",
+                  "description": "Size in bytes"
+                },
+                "width": {
+                  "type": "integer",
+                  "description": "Width in pixels (for images)"
+                },
+                "height": {
+                  "type": "integer",
+                  "description": "Height in pixels (for images)"
+                }
+              }
+            }
+          },
+          "updated": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the note was last updated"
+          }
+        }
+      }
+    }
+  ]
+}

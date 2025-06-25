@@ -21,6 +21,10 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 - Supports **read-only Evernote access** (searching, reading, and listing notes)
 - **OAuth 1.0a authentication** with browser auto-launch for secure authorization
 - Uses **macOS Keychain** to securely store access tokens
+- **🆕 v1.1.0: Automatic token expiration detection** - Server checks token validity on startup
+- **🆕 v1.1.0: Interactive re-authentication prompts** - User-friendly prompts when tokens expire
+- **🆕 v1.1.0: Enhanced error handling** - Specific EDAMUserException error code reporting
+- **🆕 v1.1.0: Proactive token management** - Prevents API failures from expired credentials
 - **HTTPS-only server** with self-signed certificates for local development
 - Designed to work with **Claude Desktop MCP integrations**, with future-proofing for other LLMs (e.g., ChatGPT Desktop)
 - **Configurable debug logging** via `DEV_MODE` environment variable with automatic token redaction for security
@@ -104,6 +108,31 @@ npx node index.js
 ```
 
 The server will start on `https://localhost:3443`. Your browser will show a security warning for the self-signed certificate - this is normal for local development.
+
+### ⏰ Token Expiration Handling (v1.1.0+)
+
+The server now automatically checks for expired authentication tokens on startup:
+
+**For Valid Tokens:**
+```
+🚀 Starting Evernote MCP Server...
+🔍 Token status: Token valid until 8/21/2025, 1:20:00 AM
+✅ Using existing valid authentication tokens
+✅ Authentication ready
+🌐 Evernote MCP Server listening on HTTPS port 3443
+```
+
+**For Expired Tokens:**
+```
+🚀 Starting Evernote MCP Server...
+🔍 Token status: Token expired on 6/16/2025, 9:55:49 PM
+⚠️  Your Evernote authentication tokens have expired.
+Would you like to re-authenticate now? (y/N): y
+🧹 Re-authenticating with Evernote...
+🚀 Starting Evernote OAuth flow...
+```
+
+If you choose `N` (no), the server will exit gracefully with instructions to restart and choose `y` when ready to re-authenticate.
 
 ### First Run & OAuth Flow
 
@@ -201,8 +230,10 @@ Once connected, Claude Desktop will have access to these Evernote tools:
 
 **Authentication errors:**
 - Complete OAuth flow by running the HTTPS server standalone first: `node index.js`
+- **🆕 v1.1.0**: Server now automatically detects expired tokens and prompts for re-authentication
 - Check tokens are stored in macOS Keychain (`Keychain Access.app`)
 - Verify Evernote API credentials are valid and active
+- **🆕 v1.1.0**: If you get `EDAMUserException` errors, restart the server to check token expiration
 
 ### Configuration Alternatives
 
@@ -374,6 +405,35 @@ npm test -- --testNamePattern="OAuth"
 ```
 
 The test suite ensures OAuth 1.0a implementation correctness, validates all server endpoints, and provides confidence in the authentication flow without requiring actual Evernote API calls or SSL certificates during testing. Claude Desktop can also be used to validate that your MCP server responds correctly to natural language prompts.
+
+## 📋 Changelog
+
+### v1.1.0 (Latest)
+**🆕 New Features:**
+- **Automatic token expiration detection** - Server checks token validity on startup
+- **Interactive re-authentication prompts** - User-friendly prompts for expired tokens  
+- **Enhanced error handling** - Specific EDAMUserException error code reporting
+- **Proactive token management** - Prevents API failures from expired credentials
+
+**🔧 Technical Improvements:**
+- Added `checkTokenExpiration()` function with comprehensive validation
+- Added `askUserConfirmation()` for interactive user prompts
+- Added `clearStoredTokens()` for safe token cleanup
+- Enhanced server startup flow with expiration checks
+- Improved error messaging throughout authentication flow
+
+**🧪 Testing:**
+- All 38 existing tests continue to pass
+- Token expiration functionality tested and validated
+
+### v1.0.0 
+- Initial release with full OAuth 1.0a implementation
+- Complete Apache Thrift protocol integration
+- Four MCP tools: createSearch, getSearch, getNote, getNoteContent
+- Comprehensive test suite (38 tests)
+- Claude Desktop MCP integration
+- macOS Keychain token storage
+- HTTPS server with self-signed certificates
 
 ## 🔒 Security
 

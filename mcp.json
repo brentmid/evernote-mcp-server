@@ -1,8 +1,8 @@
 {
   "mcpVersion": "2025-03-26",
   "name": "evernote-mcp-server",
-  "version": "1.0.0",
-  "description": "A Model Context Protocol server that provides secure access to Evernote notes and notebooks through OAuth 1.0a authentication",
+  "version": "1.1.0",
+  "description": "A Model Context Protocol server that provides secure access to Evernote notes and notebooks through OAuth 1.0a authentication with automatic token expiration handling",
   "author": "brentmid",
   "license": "MIT",
   "homepage": "https://github.com/brentmid/evernote-mcp-server",

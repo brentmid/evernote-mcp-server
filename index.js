@@ -202,14 +202,46 @@ const sslOptions = {
 
 /**
  * Initialize authentication and start the HTTPS server
- * Checks for existing tokens or initiates OAuth flow
+ * Checks for existing tokens, validates expiration, and initiates OAuth flow if needed
  */
 async function startServer() {
   try {
     console.error('🚀 Starting Evernote MCP Server...');
     
-    // Check authentication status
-    const authResult = await auth.authenticate();
+    // First, check if existing tokens are expired
+    const tokenStatus = await auth.checkTokenExpiration();
+    console.error(`🔍 Token status: ${tokenStatus.message}`);
+    
+    let authResult;
+    
+    if (tokenStatus.isExpired) {
+      // Tokens are expired - ask user if they want to re-authenticate
+      console.error('⚠️  Your Evernote authentication tokens have expired.');
+      
+      const shouldReauth = await auth.askUserConfirmation('Would you like to re-authenticate now?');
+      
+      if (shouldReauth) {
+        console.error('🧹 Re-authenticating with Evernote...');
+        
+        // Clear expired tokens
+        await auth.clearStoredTokens();
+        
+        // Start fresh authentication
+        authResult = await auth.authenticate();
+      } else {
+        console.error('❌ Server cannot start without valid authentication.');
+        console.error('💡 Run the server again and choose "y" to re-authenticate.');
+        process.exit(1);
+      }
+    } else if (!tokenStatus.hasToken) {
+      // No tokens at all - start authentication flow
+      console.error('🔐 No authentication tokens found. Starting OAuth flow...');
+      authResult = await auth.authenticate();
+    } else {
+      // Tokens are valid - continue with existing authentication
+      console.error('✅ Using existing valid authentication tokens');
+      authResult = { needsCallback: false };
+    }
     
     if (authResult.needsCallback) {
       // Store request token secret for callback

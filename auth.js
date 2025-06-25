@@ -202,6 +202,99 @@ async function getTokenFromKeychain() {
 }
 
 /**
+ * Check if stored authentication tokens are expired
+ * @returns {Promise<Object>} Object with expiration status and details
+ */
+async function checkTokenExpiration() {
+  try {
+    const tokenData = await getTokenFromKeychain();
+    
+    if (!tokenData) {
+      return {
+        hasToken: false,
+        isExpired: false,
+        message: 'No stored authentication tokens found'
+      };
+    }
+    
+    if (!tokenData.edamExpires) {
+      return {
+        hasToken: true,
+        isExpired: false,
+        message: 'Token expiration date not available (assuming valid)',
+        tokenData
+      };
+    }
+    
+    const now = Date.now();
+    const expirationDate = new Date(parseInt(tokenData.edamExpires) * 1000);
+    const isExpired = now > expirationDate.getTime();
+    const timeUntilExpiration = expirationDate.getTime() - now;
+    
+    return {
+      hasToken: true,
+      isExpired,
+      expirationDate: expirationDate.toISOString(),
+      timeUntilExpiration: isExpired ? 0 : timeUntilExpiration,
+      message: isExpired 
+        ? `Token expired on ${expirationDate.toLocaleString()}`
+        : `Token valid until ${expirationDate.toLocaleString()}`,
+      tokenData: isExpired ? null : tokenData
+    };
+    
+  } catch (error) {
+    console.error('❌ Error checking token expiration:', error.message);
+    return {
+      hasToken: false,
+      isExpired: false,
+      error: error.message,
+      message: 'Error checking token status'
+    };
+  }
+}
+
+/**
+ * Interactive prompt for user confirmation
+ * @param {string} question - Question to ask the user
+ * @returns {Promise<boolean>} True if user confirms, false otherwise
+ */
+function askUserConfirmation(question) {
+  return new Promise((resolve) => {
+    const readline = require('readline');
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stderr // Use stderr to avoid interfering with stdout logs
+    });
+    
+    rl.question(`${question} (y/N): `, (answer) => {
+      rl.close();
+      const confirmed = answer.toLowerCase().trim() === 'y' || answer.toLowerCase().trim() === 'yes';
+      resolve(confirmed);
+    });
+  });
+}
+
+/**
+ * Clear expired tokens from keychain
+ * @returns {Promise<void>}
+ */
+async function clearStoredTokens() {
+  try {
+    console.error('🧹 Clearing expired tokens from Keychain...');
+    
+    // Delete all stored authentication data
+    await keytar.deletePassword(EVERNOTE_CONFIG.serviceName, 'access_token');
+    await keytar.deletePassword(EVERNOTE_CONFIG.serviceName, 'token_secret');
+    await keytar.deletePassword(EVERNOTE_CONFIG.serviceName, 'edam_data');
+    
+    console.error('✅ Expired tokens cleared from Keychain');
+  } catch (error) {
+    console.error('❌ Error clearing tokens:', error.message);
+    throw error;
+  }
+}
+
+/**
  * Launch system browser to open URL
  * @param {string} url - URL to open
  */
@@ -350,5 +443,8 @@ module.exports = {
   authenticate,
   handleCallback,
   getTokenFromKeychain,
+  checkTokenExpiration,
+  askUserConfirmation,
+  clearStoredTokens,
   EVERNOTE_CONFIG
 };

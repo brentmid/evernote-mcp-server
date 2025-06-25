@@ -7,7 +7,8 @@ const crypto = require('crypto');
 // Mock keytar to avoid actual Keychain operations during testing
 jest.mock('keytar', () => ({
   setPassword: jest.fn().mockResolvedValue(true),
-  getPassword: jest.fn().mockResolvedValue(null)
+  getPassword: jest.fn().mockResolvedValue(null),
+  deletePassword: jest.fn().mockResolvedValue(true)
 }));
 
 // Mock child_process to avoid opening browser during tests
@@ -231,4 +232,5 @@ describe('Auth Module', () => {
       expect(result).toBeNull();
     });
   });
+
 });

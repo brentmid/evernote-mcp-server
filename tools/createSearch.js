@@ -114,8 +114,48 @@ async function makeNoteStoreRequest(method, data, tokenData) {
   } catch (error) {
     console.error(`❌ Thrift call ${method} failed:`, error.message);
     if (DEV_MODE) {
+      console.error(`❌ Full error details:`, error);
       logEvernoteResponse(method, { error: error.message }, 500);
     }
+    
+    // Handle EDAMUserException with specific error codes
+    if (error.name === 'EDAMUserException' && error.errorCode) {
+      const errorCodeNames = {
+        1: 'UNKNOWN',
+        2: 'BAD_DATA_FORMAT', 
+        3: 'PERMISSION_DENIED',
+        4: 'INTERNAL_ERROR',
+        5: 'DATA_REQUIRED',
+        6: 'LIMIT_REACHED',
+        7: 'QUOTA_REACHED',
+        8: 'INVALID_AUTH',
+        9: 'AUTH_EXPIRED',
+        10: 'DATA_CONFLICT',
+        11: 'ENML_VALIDATION',
+        12: 'SHARD_UNAVAILABLE',
+        13: 'LEN_TOO_SHORT',
+        14: 'LEN_TOO_LONG',
+        15: 'TOO_FEW',
+        16: 'TOO_MANY',
+        17: 'UNSUPPORTED_OPERATION',
+        18: 'TAKEN_DOWN',
+        19: 'RATE_LIMIT_REACHED',
+        20: 'BUSINESS_SECURITY_LOGIN_REQUIRED',
+        21: 'DEVICE_LIMIT_REACHED',
+        22: 'OPENID_ALREADY_TAKEN',
+        23: 'INVALID_OPENID_TOKEN',
+        24: 'USER_NOT_ASSOCIATED',
+        25: 'USER_NOT_REGISTERED',
+        26: 'USER_ALREADY_ASSOCIATED',
+        27: 'ACCOUNT_CLEAR',
+        28: 'SSO_AUTHENTICATION_REQUIRED'
+      };
+      
+      const errorCodeName = errorCodeNames[error.errorCode] || `UNKNOWN_CODE_${error.errorCode}`;
+      const parameter = error.parameter ? ` (${error.parameter})` : '';
+      throw new Error(`EDAMUserException: ${errorCodeName}${parameter}`);
+    }
+    
     throw new Error(`Thrift API Error: ${error.message}`);
   } finally {
     // Always close the connection

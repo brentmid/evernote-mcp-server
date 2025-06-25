@@ -28,7 +28,7 @@ function createNoteStoreClient(noteStoreUrl) {
     protocol: thrift.TBinaryProtocol,
     path: url.pathname,
     headers: {
-      'User-Agent': 'evernote-mcp-server/1.0.0'
+      'User-Agent': 'evernote-mcp-server/1.1.0'
     },
     https: true // Enable HTTPS
   };

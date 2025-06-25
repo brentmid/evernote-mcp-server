@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a local Evernote MCP (Model Context Protocol) server that connects Claude Desktop with Evernote accounts. It provides read-only access to Evernote notes through MCP calls like `createSearch`, `getNote`, and `getNoteContent`.
+This is a local Evernote MCP (Model Context Protocol) server that connects Claude Desktop with Evernote accounts. It provides read-only access to Evernote notes through MCP calls like `createSearch`, `getNote`, and `getNoteContent`. Version 1.1 includes automatic token expiration detection and user-friendly re-authentication prompts.
 
 ## Architecture
 
@@ -106,6 +106,10 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **Claude Desktop integration** with MCP server configuration
 - GET /mcp.json endpoint for serving MCP manifest
 - Generated JavaScript Thrift client libraries from official Evernote IDL files
+- **🆕 v1.1.0: Automatic token expiration detection** - Server checks token validity on startup
+- **🆕 v1.1.0: Interactive re-authentication prompts** - User-friendly prompts for expired tokens
+- **🆕 v1.1.0: Enhanced error handling** - Specific EDAMUserException error code reporting
+- **🆕 v1.1.0: Proactive token management** - Prevents API failures from expired credentials
 
 ### In Progress 🚧
 - Performance optimizations for large note collections

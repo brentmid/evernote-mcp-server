@@ -124,6 +124,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **🆕 v1.1.0: Proactive token management** - Prevents API failures from expired credentials
 - **🆕 v1.1.1: Automatic .env token persistence** - Tokens saved to .env file automatically, eliminating re-authorization on server restart
 - **🆕 v1.1.2: Security hardening** - Resolved CVE-2021-32640 in ws dependency using npm overrides to force secure versions
+- **🆕 v2.0.0: Production containerization** - Full Docker support with Chainguard secure base images, token persistence, and zero-CVE security
 
 ### Security Notes 🔒
 
@@ -146,6 +147,34 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 ```
 
 This forces ALL ws dependencies (including nested ones in subdependencies) to use the secure version, eliminating CVE-2021-32640.
+
+## Version 2.0.0 Release Notes 🚀
+
+**Major Release: Production-Ready Containerization**
+
+### Breaking Changes
+- **Docker Compose**: Now the recommended deployment method with full token persistence
+- **Environment Variables**: All OAuth tokens must be provided via environment variables for Docker deployment
+- **Modern Docker Compose**: Removed obsolete version field from docker-compose.yml
+
+### New Features
+- **🐳 Full Docker Support**: Production-ready containerization with Chainguard secure base images
+- **🔐 Container Token Persistence**: OAuth tokens persist across container restarts via environment variables
+- **⚡ Zero-Setup Docker**: `docker-compose up` with automatic OAuth token detection
+- **🛡️ Security Hardening**: Zero CVEs with npm overrides for nested vulnerable dependencies
+- **📦 Multi-stage Build**: Optimized Docker images using builder pattern for minimal production footprint
+
+### Technical Improvements
+- **Chainguard Base Images**: Using `cgr.dev/chainguard/node` for minimal attack surface
+- **ENTRYPOINT/CMD Pattern**: Proper Docker execution with `/usr/bin/node` as entrypoint
+- **Environment Variable Loading**: dotenv integration for seamless local/container development
+- **Automated SSL Generation**: SSL certificates auto-generated in Docker containers
+- **Health Checks**: Built-in Docker health monitoring
+
+### Migration from v1.x
+- **Local Development**: No changes required - `node index.js` works as before
+- **Docker Deployment**: Use `docker-compose up` instead of manual Docker commands
+- **Token Storage**: Ensure `.env` file contains all `EVERNOTE_*` tokens for container persistence
 
 ### In Progress 🚧
 - Performance optimizations for large note collections

@@ -16,6 +16,15 @@ Enable local, secure AI-assisted access to your Evernote notes. For example:
 
 This project allows the LLM to send MCP calls like `createSearch`, `getNote`, and `getNoteContent`, which are translated into API calls to Evernote. The response is returned to the LLM in a structured format.
 
+## 🚀 What's New in v2.0
+
+**Production-Ready Docker Deployment**
+- 🐳 **One-command setup**: `docker-compose up` for instant deployment
+- 🔐 **Persistent authentication**: OAuth tokens survive container restarts
+- 🛡️ **Security-first**: Chainguard distroless base images with zero CVEs
+- ⚡ **Optimized builds**: Multi-stage Docker builds for minimal production footprint
+- 🔧 **Auto-configuration**: SSL certificates and environment setup handled automatically
+
 ## ✅ Features
 
 - Supports **read-only Evernote access** (searching, reading, and listing notes)
@@ -27,6 +36,7 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 - **🆕 v1.1.0: Proactive token management** - Prevents API failures from expired credentials
 - **🆕 v1.1.1: Automatic .env token persistence** - No more re-authorization between server restarts
 - **🆕 v1.1.2: Security hardening** - Zero CVEs with npm overrides for vulnerable dependencies
+- **🆕 v2.0.0: Production-ready Docker deployment** - Full containerization with Chainguard secure images
 - **HTTPS-only server** with self-signed certificates for local development
 - Designed to work with **Claude Desktop MCP integrations**, with future-proofing for other LLMs (e.g., ChatGPT Desktop)
 - **Configurable debug logging** via `DEV_MODE` environment variable with automatic token redaction for security
@@ -76,12 +86,30 @@ This project uses npm `overrides` to ensure all dependencies use secure versions
 
 ## 💻 Setup
 
-### Requirements
+### 🐳 Docker Deployment (Recommended)
 
-- macOS with Node.js 18+ installed via Homebrew (`node --version`)
+**Quick Start**:
+```bash
+git clone https://github.com/brentmid/evernote-mcp-server.git
+cd evernote-mcp-server
+cp .env.example .env
+# Edit .env with your Evernote API credentials
+docker-compose up --build
+```
+
+**What you get**:
+- ✅ Instant setup with zero local dependencies
+- ✅ Production-ready Chainguard secure base images
+- ✅ Automatic SSL certificate generation
+- ✅ OAuth tokens persist across container restarts
+- ✅ Zero CVE security scanning
+
+### 🛠️ Local Development
+
+**Requirements**:
+- Node.js 18+ 
 - OpenSSL for SSL certificate generation
 - Evernote developer account and API credentials
-- **Claude Desktop app** (for MCP integration)
 - **Docker Desktop** (for containerized deployment)
 - GitHub SSH key configured via 1Password (for development)
 - Visual Studio Code with GitHub Copilot and Copilot Chat extensions (for development)

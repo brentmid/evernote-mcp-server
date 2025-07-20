@@ -121,6 +121,214 @@ app.get('/oauth/callback', async (req, res) => {
  * MCP (Model Context Protocol) endpoint - POST request to /mcp
  * Dispatches requests based on command field and routes to appropriate functions
  */
+// MCP over HTTP endpoint (JSON-RPC) for Claude Desktop
+app.post('/mcp-jsonrpc', async (req, res) => {
+  try {
+    const request = req.body;
+    
+    // Handle MCP protocol messages
+    if (request.method === 'initialize') {
+      return res.json({
+        jsonrpc: "2.0",
+        id: request.id,
+        result: {
+          protocolVersion: "2025-06-18",
+          capabilities: {
+            tools: {}
+          },
+          serverInfo: {
+            name: "evernote-mcp-server",
+            version: "2.0.0"
+          }
+        }
+      });
+    }
+    
+    if (request.method === 'tools/list') {
+      const tools = [
+        {
+          name: 'createSearch',
+          description: 'Search for notes in Evernote using natural language queries',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              query: {
+                type: 'string',
+                description: 'Natural language search query (e.g., "boat repair notes", "meeting notes from last week")',
+              },
+              maxResults: {
+                type: 'integer',
+                description: 'Maximum number of search results to return (default: 20, max: 100)',
+                minimum: 1,
+                maximum: 100,
+                default: 20,
+              },
+              offset: {
+                type: 'integer',
+                description: 'Number of results to skip for pagination (default: 0)',
+                minimum: 0,
+                default: 0,
+              },
+              notebookName: {
+                type: 'string',
+                description: 'Optional: Name of specific notebook to search within',
+              },
+              tags: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Optional: Array of tag names to filter by',
+              },
+              createdAfter: {
+                type: 'string',
+                format: 'date',
+                description: 'Optional: Only return notes created after this date (YYYY-MM-DD)',
+              },
+              updatedAfter: {
+                type: 'string',
+                format: 'date',
+                description: 'Optional: Only return notes updated after this date (YYYY-MM-DD)',
+              },
+            },
+            required: [],
+          },
+        },
+        {
+          name: 'getSearch',
+          description: 'Get details about a previously executed search by its ID',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              searchId: {
+                type: 'string',
+                description: 'Unique identifier of the search to retrieve',
+              },
+            },
+            required: ['searchId'],
+          },
+        },
+        {
+          name: 'getNote',
+          description: 'Retrieve metadata and basic information for a specific note by its GUID',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              noteGuid: {
+                type: 'string',
+                description: 'The unique identifier (GUID) of the note to retrieve',
+              },
+            },
+            required: ['noteGuid'],
+          },
+        },
+        {
+          name: 'getNoteContent',
+          description: 'Retrieve the full content of a specific note in a readable format',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              noteGuid: {
+                type: 'string',
+                description: 'The unique identifier (GUID) of the note to retrieve content for',
+              },
+              format: {
+                type: 'string',
+                enum: ['text', 'html', 'enml'],
+                description: 'Format to return the content in (default: text)',
+                default: 'text',
+              },
+            },
+            required: ['noteGuid'],
+          },
+        },
+      ];
+      
+      return res.json({
+        jsonrpc: "2.0",
+        id: request.id,
+        result: { tools }
+      });
+    }
+    
+    if (request.method === 'tools/call') {
+      const { name, arguments: args } = request.params;
+      
+      // Get authentication token
+      const tokenData = await auth.getTokenFromEnv();
+      if (!tokenData) {
+        return res.json({
+          jsonrpc: "2.0",
+          id: request.id,
+          error: {
+            code: -32001,
+            message: 'Evernote authentication required. Please run the server standalone first to complete OAuth flow.'
+          }
+        });
+      }
+
+      // Call appropriate tool
+      let result;
+      switch (name) {
+        case 'createSearch':
+          result = await createSearch(args, tokenData);
+          break;
+        case 'getSearch':
+          result = await getSearch(args, tokenData);
+          break;
+        case 'getNote':
+          result = await getNote(args, tokenData);
+          break;
+        case 'getNoteContent':
+          result = await getNoteContent(args, tokenData);
+          break;
+        default:
+          return res.json({
+            jsonrpc: "2.0",
+            id: request.id,
+            error: {
+              code: -32601,
+              message: `Unknown tool: ${name}`
+            }
+          });
+      }
+
+      return res.json({
+        jsonrpc: "2.0",
+        id: request.id,
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        }
+      });
+    }
+    
+    // Unknown method
+    res.json({
+      jsonrpc: "2.0",
+      id: request.id,
+      error: {
+        code: -32601,
+        message: `Method not found: ${request.method}`
+      }
+    });
+    
+  } catch (error) {
+    console.error('MCP HTTP Error:', error);
+    res.json({
+      jsonrpc: "2.0",
+      id: req.body?.id || null,
+      error: {
+        code: -32603,
+        message: 'Internal error',
+        data: error.message
+      }
+    });
+  }
+});
+
 app.post('/mcp', async (req, res) => {
   try {
     // Check if we have valid authentication

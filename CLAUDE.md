@@ -90,7 +90,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **Real Crypto Testing**: Actual HMAC-SHA1 signature validation with test vectors
 - **Environment Isolation**: Test-specific environment variables prevent interference
 - **Coverage Requirements**: 70%+ branch, 80%+ function/line coverage enforced
-- **Error Scenario Testing**: Network failures, invalid responses, keychain errors
+- **Error Scenario Testing**: Network failures, invalid responses, environment variable errors
 - **Integration Validation**: Full OAuth workflow simulation without external API dependencies
 
 **Test Categories**:
@@ -106,7 +106,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 ### Completed Features ✅
 - Complete OAuth 1.0a implementation with Evernote production endpoints
 - HTTPS server with self-signed certificates for local development  
-- macOS Keychain integration for secure token storage
+- Cross-platform token storage via environment variables (replaced macOS Keychain for broader compatibility)
 - Comprehensive test suite (38 tests) with extensive mocking
 - MCP tool manifest (mcp.json) with complete specification  
 - POST /mcp endpoint with command dispatching
@@ -122,7 +122,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **🆕 v1.1.0: Interactive re-authentication prompts** - User-friendly prompts for expired tokens
 - **🆕 v1.1.0: Enhanced error handling** - Specific EDAMUserException error code reporting
 - **🆕 v1.1.0: Proactive token management** - Prevents API failures from expired credentials
-- **🆕 v1.1.1: Automatic .env token persistence** - Tokens saved to .env file automatically, eliminating re-authorization on server restart
+- **🆕 v1.1.1: Automatic .env token persistence** - Tokens saved to .env file automatically, eliminating re-authorization on server restart (replaced macOS Keychain for cross-platform compatibility)
 - **🆕 v1.1.2: Security hardening** - Resolved CVE-2021-32640 in ws dependency using npm overrides to force secure versions
 - **🆕 v2.0.0: Production containerization** - Full Docker support with Chainguard secure base images, token persistence, and zero-CVE security
 
@@ -182,7 +182,7 @@ This forces ALL ws dependencies (including nested ones in subdependencies) to us
 
 ### Planned Features 📋
 - Support for additional Evernote search filters and advanced queries
-- Cross-platform compatibility (Linux/Windows token storage)
+- Enhanced cross-platform authentication workflow
 - Integration with other MCP-compatible LLMs
 
 ## Claude Desktop Integration
@@ -240,14 +240,14 @@ Claude: [Uses createSearch with date filters] "Here are your recent meeting note
 
 **Common Issues**:
 - **Server not running**: Ensure the MCP server is started before launching Claude Desktop
-- **Authentication failure**: Complete OAuth flow standalone first to store tokens in Keychain
+- **Authentication failure**: Complete OAuth flow standalone first to store tokens in .env file
 - **Path errors**: Use absolute paths in Claude Desktop configuration
 - **Credential issues**: Verify Evernote API keys are correctly set
 
 **Debug Methods**:
 - Check server logs for Thrift connection errors
 - Use `DEV_MODE=true` for detailed API logging
-- Verify tokens in macOS Keychain Access app
+- Verify tokens in .env file or environment variables
 - Test server endpoints directly with curl before Claude Desktop integration
 
 ## File Structure

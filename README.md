@@ -34,7 +34,7 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 - **🆕 v1.1.0: Interactive re-authentication prompts** - User-friendly prompts when tokens expire
 - **🆕 v1.1.0: Enhanced error handling** - Specific EDAMUserException error code reporting
 - **🆕 v1.1.0: Proactive token management** - Prevents API failures from expired credentials
-- **🆕 v1.1.1: Automatic .env token persistence** - No more re-authorization between server restarts
+- **🆕 v1.1.1: Automatic .env token persistence** - Tokens saved to .env file automatically (replaced macOS Keychain for cross-platform compatibility)
 - **🆕 v1.1.2: Security hardening** - Zero CVEs with npm overrides for vulnerable dependencies
 - **🆕 v2.0.0: Production-ready Docker deployment** - Full containerization with Chainguard secure images
 - **HTTPS-only server** with self-signed certificates for local development
@@ -199,7 +199,7 @@ If you choose `N` (no), the server will exit gracefully with instructions to res
    - Accept the self-signed certificate warning in your browser
    - Log in to your Evernote account and authorize the application
    - You'll be redirected back to the server with a success message
-   - Access token is automatically stored in macOS Keychain for future use
+   - Access token is automatically stored in .env file for future use
 
 #### OAuth Flow Details
 
@@ -209,7 +209,7 @@ The server implements Evernote's OAuth 1.0a flow:
 2. **User Authorization**: Browser opens Evernote authorization URL
 3. **Callback**: User authorizes app, Evernote redirects to callback URL
 4. **Access Token**: Server exchanges request token for permanent access token
-5. **Storage**: Access token stored securely in macOS Keychain
+5. **Storage**: Access token stored securely in .env file
 
 **Note**: The server uses Evernote's production environment (sandbox has been decommissioned by Evernote).
 
@@ -473,7 +473,7 @@ Once connected, Claude Desktop will have access to these Evernote tools:
 **Authentication errors:**
 - Complete OAuth flow by running the HTTPS server standalone first: `node index.js`
 - **🆕 v1.1.0**: Server now automatically detects expired tokens and prompts for re-authentication
-- Check tokens are stored in macOS Keychain (`Keychain Access.app`)
+- Check tokens are stored in .env file or environment variables
 - Verify Evernote API credentials are valid and active
 - **🆕 v1.1.0**: If you get `EDAMUserException` errors, restart the server to check token expiration
 
@@ -586,10 +586,10 @@ tests/
 #### 🔐 **auth.test.js** - OAuth Authentication (12 tests)
 - **OAuth Parameter Generation**: Validates required OAuth 1.0a parameters
 - **HMAC-SHA1 Signature Generation**: Tests cryptographic signatures with known test vectors
-- **Keychain Integration**: Store/retrieve tokens in macOS Keychain
+- **Token Storage**: Store/retrieve tokens in .env file and environment variables
 - **Authentication Flow**: Existing token reuse vs new OAuth flow initiation
 - **Configuration Validation**: Evernote endpoints and environment variables
-- **Error Handling**: Network failures and keychain access errors
+- **Error Handling**: Network failures and environment variable access errors
 
 #### 🌐 **server.test.js** - Express Server Routes (15 tests)
 - **Health Check** (`GET /`): Server status and JSON responses
@@ -610,7 +610,7 @@ tests/
 - **Complete OAuth Flow**: Simulated request token → authorization → access token exchange
 - **OAuth State Management**: State preservation between request and callback phases
 - **Browser Integration**: System browser launching for authorization
-- **Error Scenarios**: Network failures, invalid responses, keychain errors
+- **Error Scenarios**: Network failures, invalid responses, environment variable errors
 - **Configuration Validation**: Endpoint URLs and credential validation
 - **Token Lifecycle**: Storage, retrieval, and reuse patterns
 
@@ -624,7 +624,7 @@ The test suite maintains high coverage standards:
 
 ### Test Features
 
-- **Comprehensive Mocking**: All external dependencies (Keychain, browser, SSL, network)
+- **Comprehensive Mocking**: All external dependencies (environment variables, browser, SSL, network)
 - **Environment Isolation**: Test-specific environment variables prevent interference
 - **Real Crypto Testing**: Actual HMAC-SHA1 signature validation with known test vectors
 - **Error Scenario Coverage**: Network failures, malformed responses, access denials
@@ -674,13 +674,13 @@ The test suite ensures OAuth 1.0a implementation correctness, validates all serv
 - Four MCP tools: createSearch, getSearch, getNote, getNoteContent
 - Comprehensive test suite (38 tests)
 - Claude Desktop MCP integration
-- macOS Keychain token storage
+- Cross-platform .env file token storage
 - HTTPS server with self-signed certificates
 
 ## 🔒 Security
 
 - No third-party data sent anywhere except to Evernote via HTTPS.
-- Authentication tokens stored using OS-native secure storage.
+- Authentication tokens stored securely in .env files and environment variables.
 - Signing key usage (SSH-based GPG) is enforced on all commits.
 
 ## 📄 License

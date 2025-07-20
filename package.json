@@ -23,5 +23,8 @@
   "devDependencies": {
     "jest": "^30.0.0",
     "supertest": "^7.1.1"
+  },
+  "overrides": {
+    "ws": "^8.18.3"
   }
 }

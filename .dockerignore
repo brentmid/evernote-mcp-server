@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+cert
+.git
+.gitignore
+README.md
+CLAUDE.md
+tests
+jest.config.js
+.DS_Store
+*.log

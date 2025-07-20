@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  evernote-mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GITHUB_REPO_URL: https://github.com/brentmid/evernote-mcp-server.git
+    ports:
+      - "3443:3443"
+    environment:
+      - NODE_ENV=production
+      - EVERNOTE_CONSUMER_KEY=${EVERNOTE_CONSUMER_KEY}
+      - EVERNOTE_CONSUMER_SECRET=${EVERNOTE_CONSUMER_SECRET}
+      - DEV_MODE=${DEV_MODE:-false}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "const https = require('https'); const options = { hostname: 'localhost', port: 3443, path: '/health', method: 'GET', rejectUnauthorized: false }; const req = https.request(options, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.end();"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

@@ -5,17 +5,12 @@
 const https = require('https');
 const querystring = require('querystring');
 
-// Mock external dependencies for integration testing
-jest.mock('keytar', () => ({
-  setPassword: jest.fn().mockResolvedValue(true),
-  getPassword: jest.fn().mockResolvedValue(null)
-}));
+// No longer need to mock keytar as we use environment variables
 
 jest.mock('child_process', () => ({
   exec: jest.fn((cmd, callback) => callback(null))
 }));
 
-const keytar = require('keytar');
 const { exec } = require('child_process');
 
 // Set test environment
@@ -86,11 +81,9 @@ describe('OAuth Flow Integration Tests', () => {
         expect(accessTokenResponse.oauth_token_secret).toBe('access_secret_456');
         
         // Test token storage
-        await keytar.setPassword(auth.EVERNOTE_CONFIG.serviceName, 'access_token', 'access_token_456');
-        await keytar.setPassword(auth.EVERNOTE_CONFIG.serviceName, 'token_secret', 'access_secret_456');
-        
-        expect(keytar.setPassword).toHaveBeenCalledWith(auth.EVERNOTE_CONFIG.serviceName, 'access_token', 'access_token_456');
-        expect(keytar.setPassword).toHaveBeenCalledWith(auth.EVERNOTE_CONFIG.serviceName, 'token_secret', 'access_secret_456');
+        // Verify tokens were stored in environment variables
+        expect(process.env.EVERNOTE_ACCESS_TOKEN).toBe('access_token_456');
+        expect(process.env.EVERNOTE_TOKEN_SECRET).toBe('access_secret_456');
         
       } finally {
         https.get = originalGet;
@@ -166,12 +159,20 @@ describe('OAuth Flow Integration Tests', () => {
       expect(parsed.oauth_token_secret).toBeUndefined();
     });
     
-    test('should handle keychain access errors', async () => {
-      // Mock keychain error
-      keytar.getPassword.mockRejectedValue(new Error('Keychain access denied'));
+    test('should handle environment variable access errors', async () => {
+      // Simulate environment variable error
+      const originalEnv = process.env.EVERNOTE_ACCESS_TOKEN;
+      Object.defineProperty(process.env, 'EVERNOTE_ACCESS_TOKEN', {
+        get: () => { throw new Error('Environment access denied'); },
+        configurable: true
+      });
       
-      const result = await auth.getTokenFromKeychain();
+      const result = await auth.getTokenFromEnv();
       expect(result).toBeNull();
+      
+      // Restore environment
+      delete process.env.EVERNOTE_ACCESS_TOKEN;
+      if (originalEnv) process.env.EVERNOTE_ACCESS_TOKEN = originalEnv;
     });
   });
 
@@ -190,22 +191,28 @@ describe('OAuth Flow Integration Tests', () => {
   });
 
   describe('Token Lifecycle', () => {
+    beforeEach(() => {
+      // Clean up environment variables before each test
+      delete process.env.EVERNOTE_ACCESS_TOKEN;
+      delete process.env.EVERNOTE_TOKEN_SECRET;
+      delete process.env.EVERNOTE_EDAM_SHARD;
+      delete process.env.EVERNOTE_EDAM_USER_ID;
+      delete process.env.EVERNOTE_EDAM_EXPIRES;
+      delete process.env.EVERNOTE_EDAM_NOTE_STORE_URL;
+      delete process.env.EVERNOTE_EDAM_WEB_API_URL_PREFIX;
+    });
+    
     test('should handle token retrieval and reuse', async () => {
-      // Simulate existing token in keychain with edam data
-      const mockEdamData = JSON.stringify({
-        shard: 's123',
-        userId: '12345',
-        expires: '1234567890',
-        noteStoreUrl: 'https://www.evernote.com/shard/s123/notestore',
-        webApiUrlPrefix: 'https://www.evernote.com/shard/s123/'
-      });
+      // Set environment variables
+      process.env.EVERNOTE_ACCESS_TOKEN = 'existing_access_token';
+      process.env.EVERNOTE_TOKEN_SECRET = 'existing_token_secret';
+      process.env.EVERNOTE_EDAM_SHARD = 's123';
+      process.env.EVERNOTE_EDAM_USER_ID = '12345';
+      process.env.EVERNOTE_EDAM_EXPIRES = '1234567890';
+      process.env.EVERNOTE_EDAM_NOTE_STORE_URL = 'https://www.evernote.com/shard/s123/notestore';
+      process.env.EVERNOTE_EDAM_WEB_API_URL_PREFIX = 'https://www.evernote.com/shard/s123/';
       
-      keytar.getPassword
-        .mockResolvedValueOnce('existing_access_token')
-        .mockResolvedValueOnce('existing_token_secret')
-        .mockResolvedValueOnce(mockEdamData);
-      
-      const result = await auth.getTokenFromKeychain();
+      const result = await auth.getTokenFromEnv();
       
       expect(result).toEqual({
         accessToken: 'existing_access_token',
@@ -216,19 +223,14 @@ describe('OAuth Flow Integration Tests', () => {
         edamNoteStoreUrl: 'https://www.evernote.com/shard/s123/notestore',
         edamWebApiUrlPrefix: 'https://www.evernote.com/shard/s123/'
       });
-      
-      expect(keytar.getPassword).toHaveBeenCalledWith(auth.EVERNOTE_CONFIG.serviceName, 'access_token');
-      expect(keytar.getPassword).toHaveBeenCalledWith(auth.EVERNOTE_CONFIG.serviceName, 'token_secret');
-      expect(keytar.getPassword).toHaveBeenCalledWith(auth.EVERNOTE_CONFIG.serviceName, 'edam_data');
     });
     
     test('should handle missing token scenario', async () => {
-      // Simulate no stored tokens
-      keytar.getPassword.mockResolvedValue(null);
-      
-      const result = await auth.getTokenFromKeychain();
+      // No environment variables set
+      const result = await auth.getTokenFromEnv();
       expect(result).toBeNull();
     });
+  })
   });
 
   describe('OAuth Parameter Validation', () => {

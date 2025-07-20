@@ -18,11 +18,21 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 
 ## Development Commands
 
+### Local Development
 - **Install dependencies**: `npm install`
 - **Set environment variables**: Export `EVERNOTE_CONSUMER_KEY` and `EVERNOTE_CONSUMER_SECRET`
 - **Enable debug logging** (optional): `export DEV_MODE=true` for detailed API request/response logging
 - **Generate SSL certificates**: `mkdir cert && openssl req -x509 -newkey rsa:4096 -keyout cert/localhost.key -out cert/localhost.crt -days 365 -nodes -subj "/C=US/ST=Local/L=Local/O=Local/OU=Local/CN=localhost"`
 - **Run server**: `npx node index.js` (requires SSL certificates and Evernote API credentials)
+
+### Docker Development
+- **Build and run with Docker Compose**: `docker-compose up --build`
+- **Run in background**: `docker-compose up -d --build`
+- **View logs**: `docker-compose logs -f evernote-mcp-server`
+- **Stop and remove**: `docker-compose down`
+- **Build Docker image directly**: `docker build --build-arg GITHUB_REPO_URL=https://github.com/yourusername/evernote-mcp-server.git -t evernote-mcp-server .`
+- **Run Docker container**: `docker run -d --name evernote-mcp -p 3443:3443 -e EVERNOTE_CONSUMER_KEY=your_key -e EVERNOTE_CONSUMER_SECRET=your_secret evernote-mcp-server`
+- **Debug Docker container**: `docker-compose exec evernote-mcp-server sh`
 
 ### Testing Commands
 - **Run all tests**: `npm test` (38 tests across 3 test suites)
@@ -35,15 +45,17 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **HTTPS Required**: Server runs on HTTPS with self-signed certificates (port 3443)
 - **OAuth 1.0a Implementation**: Uses HMAC-SHA1 signatures, not OAuth 2.0/PKCE
 - Uses Node.js CommonJS modules (`"type": "commonjs"` in package.json)
-- Requires macOS with Node.js 18+ and OpenSSL for certificate generation
+- Requires macOS with Node.js 18+ and OpenSSL for certificate generation (local development)
+- **Docker Support**: Containerized deployment using Chainguard secure Node.js base image
 - **Evernote API Credentials**: Requires registered Evernote developer app
 - Browser-based OAuth 1.0a flow launches automatically on first run
 - **Production Environment**: Uses Evernote production API (sandbox decommissioned)
 - Designed for Claude Desktop MCP integration with future LLM compatibility
 - **Debug Logging**: Configurable via `DEV_MODE` environment variable (detailed API logging with token redaction)
-- SSL certificates stored in cert/ directory (excluded from git)
+- SSL certificates stored in cert/ directory (excluded from git) or auto-generated in Docker containers
 - **Dependencies**: `express`, `keytar` (for macOS Keychain), built-in `crypto`, `https`
 - **Dev Dependencies**: `jest`, `supertest` for comprehensive testing
+- **Container Security**: Non-root execution, minimal attack surface, signed base images
 
 ## Authentication Flow
 
@@ -192,6 +204,7 @@ evernote-mcp-server/
 ├── index.js              # Main HTTPS server with OAuth integration and /mcp.json endpoint
 ├── auth.js               # OAuth 1.0a authentication module
 ├── mcp.json              # MCP tool manifest for Claude Desktop
+├── mcp-server.js         # MCP server entry point for Claude Desktop integration
 ├── tools/                # MCP tool implementations
 │   ├── createSearch.js   # Real Thrift-based search implementation
 │   ├── getSearch.js      # Search result caching and retrieval
@@ -207,6 +220,10 @@ evernote-mcp-server/
 │   ├── integration.test.js # End-to-end workflow tests
 │   └── setup.js          # Global test configuration
 ├── cert/                 # SSL certificates (excluded from git)
+├── docker-compose.yml    # Docker Compose configuration for containerized deployment
+├── Dockerfile            # Multi-stage Docker build using Chainguard secure base image
+├── .dockerignore         # Docker build context exclusions
+├── .env.example          # Environment variable template for Docker deployment
 ├── package.json          # Dependencies and scripts (includes thrift dependency)
 ├── jest.config.js        # Jest test configuration
 ├── .gitignore            # Git ignore patterns

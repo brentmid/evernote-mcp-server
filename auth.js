@@ -1,13 +1,12 @@
 /**
  * Evernote OAuth 1.0a Authentication Module
- * Handles the complete OAuth flow including token storage in macOS Keychain
+ * Handles the complete OAuth flow with environment variable token storage
  */
 
 const crypto = require('crypto');
 const https = require('https');
 const url = require('url');
 const querystring = require('querystring');
-const keytar = require('keytar');
 const { exec } = require('child_process');
 
 /**
@@ -136,67 +135,59 @@ function makeOAuthRequest(requestUrl, params, tokenSecret = '') {
 }
 
 /**
- * Store access token and Evernote data in macOS Keychain
+ * Store access token and Evernote data in environment variables
  * @param {Object} tokenData - Complete token data from Evernote
  */
-async function storeTokenInKeychain(tokenData) {
+async function storeTokenInEnv(tokenData) {
   try {
-    await keytar.setPassword(EVERNOTE_CONFIG.serviceName, 'access_token', tokenData.accessToken);
-    // Store empty token secret as a placeholder string (Keychain requires non-empty password)
-    await keytar.setPassword(EVERNOTE_CONFIG.serviceName, 'token_secret', tokenData.tokenSecret || 'EMPTY_TOKEN_SECRET');
+    // Set environment variables
+    process.env.EVERNOTE_ACCESS_TOKEN = tokenData.accessToken;
+    process.env.EVERNOTE_TOKEN_SECRET = tokenData.tokenSecret || '';
+    process.env.EVERNOTE_EDAM_SHARD = tokenData.edamShard || '';
+    process.env.EVERNOTE_EDAM_USER_ID = tokenData.edamUserId || '';
+    process.env.EVERNOTE_EDAM_EXPIRES = tokenData.edamExpires || '';
+    process.env.EVERNOTE_EDAM_NOTE_STORE_URL = tokenData.edamNoteStoreUrl || '';
+    process.env.EVERNOTE_EDAM_WEB_API_URL_PREFIX = tokenData.edamWebApiUrlPrefix || '';
     
-    // Store Evernote-specific data as JSON
-    const edamData = {
-      shard: tokenData.edamShard,
-      userId: tokenData.edamUserId,
-      expires: tokenData.edamExpires,
-      noteStoreUrl: tokenData.edamNoteStoreUrl,
-      webApiUrlPrefix: tokenData.edamWebApiUrlPrefix
-    };
-    await keytar.setPassword(EVERNOTE_CONFIG.serviceName, 'edam_data', JSON.stringify(edamData));
-    
-    console.error('✅ Access token and Evernote data stored in Keychain');
+    console.error('✅ Access token and Evernote data stored in environment variables');
+    console.error('💡 For persistent storage, add these to your .env file:');
+    console.error(`EVERNOTE_ACCESS_TOKEN=${tokenData.accessToken}`);
+    console.error(`EVERNOTE_TOKEN_SECRET=${tokenData.tokenSecret || ''}`);
+    console.error(`EVERNOTE_EDAM_SHARD=${tokenData.edamShard || ''}`);
+    console.error(`EVERNOTE_EDAM_USER_ID=${tokenData.edamUserId || ''}`);
+    console.error(`EVERNOTE_EDAM_EXPIRES=${tokenData.edamExpires || ''}`);
+    console.error(`EVERNOTE_EDAM_NOTE_STORE_URL=${tokenData.edamNoteStoreUrl || ''}`);
+    console.error(`EVERNOTE_EDAM_WEB_API_URL_PREFIX=${tokenData.edamWebApiUrlPrefix || ''}`);
   } catch (error) {
-    console.error('❌ Failed to store token in Keychain:', error.message);
+    console.error('❌ Failed to store token in environment variables:', error.message);
     throw error;
   }
 }
 
 /**
- * Retrieve access token and Evernote data from macOS Keychain
+ * Retrieve access token and Evernote data from environment variables
  * @returns {Promise<Object>} Token object or null
  */
-async function getTokenFromKeychain() {
+async function getTokenFromEnv() {
   try {
-    const accessToken = await keytar.getPassword(EVERNOTE_CONFIG.serviceName, 'access_token');
-    const tokenSecret = await keytar.getPassword(EVERNOTE_CONFIG.serviceName, 'token_secret');
-    const edamDataJson = await keytar.getPassword(EVERNOTE_CONFIG.serviceName, 'edam_data');
+    const accessToken = process.env.EVERNOTE_ACCESS_TOKEN;
     
     if (accessToken) {
-      const result = { 
-        accessToken, 
-        tokenSecret: (tokenSecret === 'EMPTY_TOKEN_SECRET') ? '' : (tokenSecret || '')
+      const result = {
+        accessToken,
+        tokenSecret: process.env.EVERNOTE_TOKEN_SECRET || '',
+        edamShard: process.env.EVERNOTE_EDAM_SHARD || '',
+        edamUserId: process.env.EVERNOTE_EDAM_USER_ID || '',
+        edamExpires: process.env.EVERNOTE_EDAM_EXPIRES || '',
+        edamNoteStoreUrl: process.env.EVERNOTE_EDAM_NOTE_STORE_URL || '',
+        edamWebApiUrlPrefix: process.env.EVERNOTE_EDAM_WEB_API_URL_PREFIX || ''
       };
-      
-      // Include Evernote-specific data if available
-      if (edamDataJson) {
-        try {
-          const edamData = JSON.parse(edamDataJson);
-          result.edamShard = edamData.shard;
-          result.edamUserId = edamData.userId;
-          result.edamExpires = edamData.expires;
-          result.edamNoteStoreUrl = edamData.noteStoreUrl;
-          result.edamWebApiUrlPrefix = edamData.webApiUrlPrefix;
-        } catch (parseError) {
-          console.error('⚠️ Failed to parse Evernote data from Keychain');
-        }
-      }
       
       return result;
     }
     return null;
   } catch (error) {
-    console.error('❌ Failed to retrieve token from Keychain:', error.message);
+    console.error('❌ Failed to retrieve token from environment variables:', error.message);
     return null;
   }
 }
@@ -207,7 +198,7 @@ async function getTokenFromKeychain() {
  */
 async function checkTokenExpiration() {
   try {
-    const tokenData = await getTokenFromKeychain();
+    const tokenData = await getTokenFromEnv();
     
     if (!tokenData) {
       return {
@@ -275,19 +266,24 @@ function askUserConfirmation(question) {
 }
 
 /**
- * Clear expired tokens from keychain
+ * Clear expired tokens from environment variables
  * @returns {Promise<void>}
  */
 async function clearStoredTokens() {
   try {
-    console.error('🧹 Clearing expired tokens from Keychain...');
+    console.error('🧹 Clearing expired tokens from environment variables...');
     
     // Delete all stored authentication data
-    await keytar.deletePassword(EVERNOTE_CONFIG.serviceName, 'access_token');
-    await keytar.deletePassword(EVERNOTE_CONFIG.serviceName, 'token_secret');
-    await keytar.deletePassword(EVERNOTE_CONFIG.serviceName, 'edam_data');
+    delete process.env.EVERNOTE_ACCESS_TOKEN;
+    delete process.env.EVERNOTE_TOKEN_SECRET;
+    delete process.env.EVERNOTE_EDAM_SHARD;
+    delete process.env.EVERNOTE_EDAM_USER_ID;
+    delete process.env.EVERNOTE_EDAM_EXPIRES;
+    delete process.env.EVERNOTE_EDAM_NOTE_STORE_URL;
+    delete process.env.EVERNOTE_EDAM_WEB_API_URL_PREFIX;
     
-    console.error('✅ Expired tokens cleared from Keychain');
+    console.error('✅ Expired tokens cleared from environment variables');
+    console.error('💡 Remember to also remove these from your .env file if they exist');
   } catch (error) {
     console.error('❌ Error clearing tokens:', error.message);
     throw error;
@@ -396,9 +392,9 @@ async function getAccessToken(requestToken, requestTokenSecret, verifier) {
  */
 async function authenticate() {
   // Check if we already have a valid token
-  const existingToken = await getTokenFromKeychain();
+  const existingToken = await getTokenFromEnv();
   if (existingToken) {
-    console.error('✅ Using existing access token from Keychain');
+    console.error('✅ Using existing access token from environment variables');
     return existingToken;
   }
   
@@ -435,14 +431,14 @@ async function authenticate() {
  */
 async function handleCallback(token, verifier, requestTokenSecret) {
   const tokenData = await getAccessToken(token, requestTokenSecret, verifier);
-  await storeTokenInKeychain(tokenData);
+  await storeTokenInEnv(tokenData);
   return tokenData;
 }
 
 module.exports = {
   authenticate,
   handleCallback,
-  getTokenFromKeychain,
+  getTokenFromEnv,
   checkTokenExpiration,
   askUserConfirmation,
   clearStoredTokens,

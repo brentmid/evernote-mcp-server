@@ -178,8 +178,8 @@ describe('Auth Module', () => {
     });
     
     test('should initiate OAuth flow if no token exists', async () => {
-      // Mock no existing token
-      keytar.getPassword.mockResolvedValue(null);
+      // Remove any existing token from environment
+      delete process.env.EVERNOTE_ACCESS_TOKEN;
       
       // This test should check the behavior when no token exists
       // Since we can't easily mock the full HTTPS flow in this test,

@@ -1,0 +1,53 @@
+# Multi-stage build using Chainguard's secure Node.js base image
+FROM cgr.dev/chainguard/node:latest-dev AS builder
+
+# Install OpenSSL for certificate generation
+USER root
+RUN apk add --no-cache openssl
+USER node
+
+# Set working directory
+WORKDIR /app
+
+# Clone the repository from GitHub
+# This assumes your repo is public. For private repos, you'll need to handle authentication
+ARG GITHUB_REPO_URL
+RUN git clone ${GITHUB_REPO_URL} .
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Generate SSL certificates for HTTPS server
+RUN mkdir -p cert && \
+    openssl req -x509 -newkey rsa:4096 -keyout cert/localhost.key -out cert/localhost.crt -days 365 -nodes \
+    -subj "/C=US/ST=Local/L=Local/O=Local/OU=Local/CN=localhost"
+
+# Production stage using minimal Chainguard image
+FROM cgr.dev/chainguard/node:latest
+
+# Set working directory
+WORKDIR /app
+
+# Copy application files and dependencies from builder stage
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/index.js ./index.js
+COPY --from=builder /app/auth.js ./auth.js
+COPY --from=builder /app/mcp.json ./mcp.json
+COPY --from=builder /app/mcp-server.js ./mcp-server.js
+COPY --from=builder /app/tools ./tools
+COPY --from=builder /app/thrift ./thrift
+COPY --from=builder /app/cert ./cert
+
+# Expose the HTTPS port
+EXPOSE 3443
+
+# Set environment variables
+ENV NODE_ENV=production
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "const https = require('https'); const options = { hostname: 'localhost', port: 3443, path: '/health', method: 'GET', rejectUnauthorized: false }; const req = https.request(options, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.end();"
+
+# Start the application
+CMD ["node", "index.js"]

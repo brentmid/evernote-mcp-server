@@ -16,7 +16,6 @@
     "@modelcontextprotocol/sdk": "^1.12.3",
     "crypto": "^1.0.1",
     "express": "^5.1.0",
-    "keytar": "^7.9.0",
     "thrift": "^0.22.0"
   },
   "devDependencies": {

@@ -56,6 +56,7 @@ Evernote uses OAuth 1.0a (not OAuth 2.0) for API authentication:
 - OpenSSL for SSL certificate generation
 - Evernote developer account and API credentials
 - **Claude Desktop app** (for MCP integration)
+- **Docker Desktop** (for containerized deployment)
 - GitHub SSH key configured via 1Password (for development)
 - Visual Studio Code with GitHub Copilot and Copilot Chat extensions (for development)
 
@@ -157,6 +158,193 @@ The server implements Evernote's OAuth 1.0a flow:
 5. **Storage**: Access token stored securely in macOS Keychain
 
 **Note**: The server uses Evernote's production environment (sandbox has been decommissioned by Evernote).
+
+## 🐳 Docker Deployment
+
+### Quick Start with Docker
+
+The easiest way to run the Evernote MCP server is using Docker with the provided Chainguard-based secure container image:
+
+```bash
+# Clone the repository
+git clone https://github.com/brentmid/evernote-mcp-server.git
+cd evernote-mcp-server
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your Evernote API credentials
+vim .env
+
+# Build and run the container
+docker-compose up --build
+```
+
+The server will be available at `https://localhost:3443`.
+
+### Docker Architecture
+
+The Docker setup uses **Chainguard's secure Node.js base image** (`cgr.dev/chainguard/node:latest`) which provides:
+
+- **Zero vulnerabilities** - Minimal attack surface with only essential packages
+- **Signed container images** - All images signed with Sigstore for supply chain security
+- **SBOM included** - Software Bill of Materials generated at build time
+- **Non-root execution** - Containers run as non-root user for enhanced security
+- **Minimal size** - Only 145MB compared to 1.12GB for standard Node.js images
+
+### Docker Files Overview
+
+The Docker setup includes several key files:
+
+#### `Dockerfile`
+Multi-stage build process:
+- **Builder stage**: Uses `cgr.dev/chainguard/node:latest-dev` with git and openssl for setup
+- **Production stage**: Uses minimal `cgr.dev/chainguard/node:latest` for runtime
+- **GitHub integration**: Clones latest code directly from your GitHub repository
+- **SSL certificates**: Automatically generates self-signed certificates for HTTPS
+- **Security**: Runs as non-root user with minimal dependencies
+
+#### `docker-compose.yml`
+Orchestration configuration:
+- **Environment variables**: Loads from `.env` file or environment
+- **Port mapping**: Exposes HTTPS port 3443 to host
+- **Health checks**: Built-in container health monitoring
+- **Restart policy**: Automatically restarts on failure
+- **Build arguments**: Configurable GitHub repository URL
+
+#### `.dockerignore`
+Optimizes build context by excluding:
+- Node modules, logs, and development files
+- Git repository data and documentation
+- Test files and configurations
+- SSL certificates (generated in container)
+
+#### `.env.example`
+Template for environment variables:
+```env
+EVERNOTE_CONSUMER_KEY=your_consumer_key_here
+EVERNOTE_CONSUMER_SECRET=your_consumer_secret_here
+DEV_MODE=false
+```
+
+### Docker Build Options
+
+#### Option 1: Docker Compose (Recommended)
+```bash
+# Build and run with compose
+docker-compose up --build
+
+# Run in background
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f
+
+# Stop and remove
+docker-compose down
+```
+
+#### Option 2: Direct Docker Build
+```bash
+# Build image
+docker build \
+  --build-arg GITHUB_REPO_URL=https://github.com/yourusername/evernote-mcp-server.git \
+  -t evernote-mcp-server .
+
+# Run container
+docker run -d \
+  --name evernote-mcp \
+  -p 3443:3443 \
+  -e EVERNOTE_CONSUMER_KEY=your_key \
+  -e EVERNOTE_CONSUMER_SECRET=your_secret \
+  evernote-mcp-server
+
+# View logs
+docker logs -f evernote-mcp
+```
+
+### Docker Configuration
+
+#### Environment Variables
+The container accepts these environment variables:
+- `EVERNOTE_CONSUMER_KEY` - Your Evernote API consumer key (required)
+- `EVERNOTE_CONSUMER_SECRET` - Your Evernote API consumer secret (required)
+- `DEV_MODE` - Enable debug logging (optional, default: false)
+- `NODE_ENV` - Node.js environment (set to production in container)
+
+#### Volume Mounts (Optional)
+For persistent token storage across container restarts:
+```yaml
+volumes:
+  - ./tokens:/app/tokens  # If implementing file-based token storage
+```
+
+#### Health Checks
+The container includes built-in health monitoring:
+- **Endpoint**: Internal HTTPS health check on port 3443
+- **Interval**: Every 30 seconds
+- **Timeout**: 10 seconds
+- **Retries**: 3 attempts before marking unhealthy
+- **Start period**: 40 seconds for initial startup
+
+### Docker Troubleshooting
+
+#### Common Issues
+
+**Build fails with "git not found":**
+- Ensure your GitHub repository is public or configure authentication
+- Check the `GITHUB_REPO_URL` build argument in docker-compose.yml
+
+**SSL certificate errors:**
+- Certificates are auto-generated in the container
+- Your browser will show security warnings for self-signed certificates (normal)
+- Accept the certificate warning to proceed
+
+**Container health check failures:**
+- Check container logs: `docker-compose logs evernote-mcp-server`
+- Verify environment variables are set correctly
+- Ensure Evernote API credentials are valid
+
+**OAuth flow issues in container:**
+- Complete OAuth flow may require running the server locally first
+- Container inherits tokens from host if using volume mounts
+- Consider running `node index.js` locally first, then containerize
+
+#### Docker Logs and Debugging
+
+```bash
+# View container logs
+docker-compose logs -f evernote-mcp-server
+
+# Enable debug mode
+echo "DEV_MODE=true" >> .env
+docker-compose up --build
+
+# Execute commands in running container
+docker-compose exec evernote-mcp-server sh
+
+# Check container health
+docker-compose ps
+```
+
+### Security Considerations
+
+The Docker setup implements several security best practices:
+
+- **Minimal base image**: Chainguard's distroless Node.js image
+- **Non-root execution**: Container runs as `node` user (non-root)
+- **HTTPS only**: All communication over secure HTTPS
+- **Environment isolation**: Secrets passed via environment variables
+- **Network security**: Only necessary port (3443) exposed
+- **Supply chain security**: Signed base images with SBOMs
+
+### Performance Optimization
+
+Docker deployment offers several performance benefits:
+- **Consistent environment**: Identical runtime across different machines
+- **Resource limits**: Can set CPU/memory limits via docker-compose
+- **Caching**: Docker layer caching speeds up rebuilds
+- **Scaling**: Easy to run multiple instances behind a load balancer
 
 ## 🔗 Claude Desktop Integration
 

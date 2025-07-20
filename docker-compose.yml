@@ -14,6 +14,14 @@ services:
       - EVERNOTE_CONSUMER_KEY=${EVERNOTE_CONSUMER_KEY}
       - EVERNOTE_CONSUMER_SECRET=${EVERNOTE_CONSUMER_SECRET}
       - DEV_MODE=${DEV_MODE:-false}
+      # OAuth tokens for persistent authentication
+      - EVERNOTE_ACCESS_TOKEN=${EVERNOTE_ACCESS_TOKEN:-}
+      - EVERNOTE_TOKEN_SECRET=${EVERNOTE_TOKEN_SECRET:-}
+      - EVERNOTE_EDAM_SHARD=${EVERNOTE_EDAM_SHARD:-}
+      - EVERNOTE_EDAM_USER_ID=${EVERNOTE_EDAM_USER_ID:-}
+      - EVERNOTE_EDAM_EXPIRES=${EVERNOTE_EDAM_EXPIRES:-}
+      - EVERNOTE_EDAM_NOTE_STORE_URL=${EVERNOTE_EDAM_NOTE_STORE_URL:-}
+      - EVERNOTE_EDAM_WEB_API_URL_PREFIX=${EVERNOTE_EDAM_WEB_API_URL_PREFIX:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "const https = require('https'); const options = { hostname: 'localhost', port: 3443, path: '/health', method: 'GET', rejectUnauthorized: false }; const req = https.request(options, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.end();"]

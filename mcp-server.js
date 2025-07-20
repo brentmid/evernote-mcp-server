@@ -7,7 +7,7 @@
 
 const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
-const { CallToolRequestSchema, ListToolsRequestSchema } = require('@modelcontextprotocol/sdk/types.js');
+const { CallToolRequestSchema, ListToolsRequestSchema, InitializeRequestSchema } = require('@modelcontextprotocol/sdk/types.js');
 
 // Import authentication and tool modules
 const auth = require('./auth');
@@ -41,6 +41,20 @@ class EvernoteMCPServer {
    * Set up tool handlers for MCP protocol
    */
   setupToolHandlers() {
+    // Handle initialization
+    this.server.setRequestHandler(InitializeRequestSchema, async (request) => {
+      return {
+        protocolVersion: "2025-06-18",
+        capabilities: {
+          tools: {}
+        },
+        serverInfo: {
+          name: "evernote-mcp-server",
+          version: "2.0.0"
+        }
+      };
+    });
+
     // Handle tool listing
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
       return {

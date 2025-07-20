@@ -1,4 +1,9 @@
 /**
+ * Load environment variables from .env file
+ */
+require('dotenv').config();
+
+/**
  * Import the Express web framework for creating HTTP servers
  */
 const express = require('express');
@@ -119,7 +124,7 @@ app.get('/oauth/callback', async (req, res) => {
 app.post('/mcp', async (req, res) => {
   try {
     // Check if we have valid authentication
-    const tokenData = await auth.getTokenFromKeychain();
+    const tokenData = await auth.getTokenFromEnv();
     if (!tokenData) {
       return res.status(401).json({ 
         error: 'Not authenticated',

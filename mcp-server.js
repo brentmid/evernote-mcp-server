@@ -149,7 +149,7 @@ class EvernoteMCPServer {
 
       try {
         // Get authentication token
-        const tokenData = await auth.getTokenFromKeychain();
+        const tokenData = await auth.getTokenFromEnv();
         if (!tokenData) {
           throw new Error('Evernote authentication required. Please run the server standalone first to complete OAuth flow.');
         }

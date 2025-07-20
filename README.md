@@ -20,11 +20,12 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 
 - Supports **read-only Evernote access** (searching, reading, and listing notes)
 - **OAuth 1.0a authentication** with browser auto-launch for secure authorization
-- Uses **macOS Keychain** to securely store access tokens
+- **Automatic token persistence** in .env file for seamless re-authentication
 - **🆕 v1.1.0: Automatic token expiration detection** - Server checks token validity on startup
 - **🆕 v1.1.0: Interactive re-authentication prompts** - User-friendly prompts when tokens expire
 - **🆕 v1.1.0: Enhanced error handling** - Specific EDAMUserException error code reporting
 - **🆕 v1.1.0: Proactive token management** - Prevents API failures from expired credentials
+- **🆕 v1.1.1: Automatic .env token persistence** - No more re-authorization between server restarts
 - **HTTPS-only server** with self-signed certificates for local development
 - Designed to work with **Claude Desktop MCP integrations**, with future-proofing for other LLMs (e.g., ChatGPT Desktop)
 - **Configurable debug logging** via `DEV_MODE` environment variable with automatic token redaction for security
@@ -34,19 +35,19 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 
 - Node.js + Express with HTTPS
 - Evernote API (OAuth 1.0a + REST)
-- macOS Keychain via `keytar`
+- Environment variable token storage with dotenv
 - MCP protocol compliance
-- GitHub Copilot and 1Password SSH signing for development
+- Docker containerization with Chainguard secure base images
 
 ## 🗝️ Authentication
 
 Evernote uses OAuth 1.0a (not OAuth 2.0) for API authentication:
 
 - **First-time setup**: Browser-based OAuth 1.0a flow with automatic token exchange
-- **Token storage**: Access tokens stored securely in macOS Keychain via `keytar`
-- **Automatic reuse**: Stored tokens are automatically used for subsequent API calls
+- **Token storage**: Access tokens automatically saved to .env file for persistence
+- **Automatic reuse**: Stored tokens are automatically loaded and used for subsequent API calls
 - **Production environment**: Uses Evernote production API (sandbox decommissioned)
-- (Planned) Future support for file-based token store for Linux/Windows
+- **Cross-platform compatibility**: Works on macOS, Linux, and Windows with file-based token storage
 
 ## 💻 Setup
 

@@ -8,6 +8,8 @@ const https = require('https');
 const url = require('url');
 const querystring = require('querystring');
 const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * Configuration for Evernote OAuth
@@ -135,6 +137,55 @@ function makeOAuthRequest(requestUrl, params, tokenSecret = '') {
 }
 
 /**
+ * Update .env file with token data
+ * @param {Object} tokenData - Token data object
+ */
+async function updateEnvFile(tokenData) {
+  try {
+    const envPath = path.join(__dirname, '.env');
+    let envContent = '';
+    
+    // Read existing .env file if it exists
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf8');
+    }
+    
+    // Define token variables to add/update
+    const tokenVars = {
+      'EVERNOTE_ACCESS_TOKEN': tokenData.accessToken,
+      'EVERNOTE_TOKEN_SECRET': tokenData.tokenSecret || '',
+      'EVERNOTE_EDAM_SHARD': tokenData.edamShard || '',
+      'EVERNOTE_EDAM_USER_ID': tokenData.edamUserId || '',
+      'EVERNOTE_EDAM_EXPIRES': tokenData.edamExpires || '',
+      'EVERNOTE_EDAM_NOTE_STORE_URL': tokenData.edamNoteStoreUrl || '',
+      'EVERNOTE_EDAM_WEB_API_URL_PREFIX': tokenData.edamWebApiUrlPrefix || ''
+    };
+    
+    // Update or add each token variable
+    for (const [key, value] of Object.entries(tokenVars)) {
+      const regex = new RegExp(`^${key}=.*$`, 'm');
+      const line = `${key}=${value}`;
+      
+      if (regex.test(envContent)) {
+        // Update existing line
+        envContent = envContent.replace(regex, line);
+      } else {
+        // Add new line
+        envContent += `\n${line}`;
+      }
+    }
+    
+    // Write updated content back to .env file
+    fs.writeFileSync(envPath, envContent.trim() + '\n');
+    console.error('✅ Tokens saved to .env file for persistent storage');
+    
+  } catch (error) {
+    console.error('❌ Failed to update .env file:', error.message);
+    // Don't throw error - we can still continue with in-memory tokens
+  }
+}
+
+/**
  * Store access token and Evernote data in environment variables
  * @param {Object} tokenData - Complete token data from Evernote
  */
@@ -150,14 +201,9 @@ async function storeTokenInEnv(tokenData) {
     process.env.EVERNOTE_EDAM_WEB_API_URL_PREFIX = tokenData.edamWebApiUrlPrefix || '';
     
     console.error('✅ Access token and Evernote data stored in environment variables');
-    console.error('💡 For persistent storage, add these to your .env file:');
-    console.error(`EVERNOTE_ACCESS_TOKEN=${tokenData.accessToken}`);
-    console.error(`EVERNOTE_TOKEN_SECRET=${tokenData.tokenSecret || ''}`);
-    console.error(`EVERNOTE_EDAM_SHARD=${tokenData.edamShard || ''}`);
-    console.error(`EVERNOTE_EDAM_USER_ID=${tokenData.edamUserId || ''}`);
-    console.error(`EVERNOTE_EDAM_EXPIRES=${tokenData.edamExpires || ''}`);
-    console.error(`EVERNOTE_EDAM_NOTE_STORE_URL=${tokenData.edamNoteStoreUrl || ''}`);
-    console.error(`EVERNOTE_EDAM_WEB_API_URL_PREFIX=${tokenData.edamWebApiUrlPrefix || ''}`);
+    
+    // Also persist to .env file for future runs
+    await updateEnvFile(tokenData);
   } catch (error) {
     console.error('❌ Failed to store token in environment variables:', error.message);
     throw error;

@@ -12,7 +12,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **External services**: Evernote API using OAuth 1.0a authentication
 - **Main entry point**: `index.js` - HTTPS server with OAuth integration
 - **Authentication module**: `auth.js` - handles complete OAuth 1.0a flow
-- **Authentication**: OAuth 1.0a flow (NOT OAuth 2.0), tokens stored in macOS Keychain via `keytar`
+- **Authentication**: OAuth 1.0a flow (NOT OAuth 2.0), tokens automatically persisted in .env file
 - **Security model**: Read-only Evernote access, HTTPS-only server, no third-party data transmission except to Evernote
 - **MCP compliance**: Implements MCP protocol for LLM integration
 
@@ -53,7 +53,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - Designed for Claude Desktop MCP integration with future LLM compatibility
 - **Debug Logging**: Configurable via `DEV_MODE` environment variable (detailed API logging with token redaction)
 - SSL certificates stored in cert/ directory (excluded from git) or auto-generated in Docker containers
-- **Dependencies**: `express`, `keytar` (for macOS Keychain), built-in `crypto`, `https`
+- **Dependencies**: `express`, `dotenv` (for environment variables), built-in `crypto`, `https`
 - **Dev Dependencies**: `jest`, `supertest` for comprehensive testing
 - **Container Security**: Non-root execution, minimal attack surface, signed base images
 
@@ -61,18 +61,18 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 
 **OAuth 1.0a Flow (NOT OAuth 2.0)**:
 
-1. **Token Check**: Server checks macOS Keychain for existing access token
+1. **Token Check**: Server checks .env file for existing access token
 2. **Request Token**: If none found, generates temporary request token from Evernote
 3. **User Authorization**: Browser opens Evernote authorization URL automatically
 4. **Callback Handling**: `/oauth/callback` endpoint receives authorization response
 5. **Token Exchange**: Server exchanges request token + verifier for permanent access token
-6. **Storage**: Access token stored securely in macOS Keychain via `keytar`
-7. **Subsequent Runs**: Stored tokens used automatically for future requests
+6. **Storage**: Access token automatically saved to .env file for persistence
+7. **Subsequent Runs**: Stored tokens loaded from .env file and used automatically for future requests
 
 **Key Implementation Details**:
 - Uses HMAC-SHA1 signature generation for OAuth 1.0a
 - Callback URL: `https://localhost:3443/oauth/callback`
-- Tokens stored with service name: `evernote-mcp-server`
+- Tokens stored in .env file with automatic persistence
 - Request token secrets temporarily stored in server memory during OAuth flow
 - MCP endpoints require valid authentication (return 401 if not authenticated)
 
@@ -86,7 +86,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - `jest.config.js` - Jest configuration with coverage thresholds
 
 **Key Test Features**:
-- **Comprehensive Mocking**: All external dependencies mocked (keytar, child_process, fs, https)
+- **Comprehensive Mocking**: All external dependencies mocked (fs, child_process, https)
 - **Real Crypto Testing**: Actual HMAC-SHA1 signature validation with test vectors
 - **Environment Isolation**: Test-specific environment variables prevent interference
 - **Coverage Requirements**: 70%+ branch, 80%+ function/line coverage enforced
@@ -95,7 +95,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 
 **Test Categories**:
 - OAuth parameter generation and HMAC-SHA1 signature creation
-- Keychain integration (store/retrieve tokens)
+- Environment variable token persistence (store/retrieve from .env)
 - Express route testing (health check, OAuth callback, MCP endpoint)
 - Authentication flow validation (existing vs new token scenarios)
 - Error handling (network failures, malformed requests, access denials)
@@ -122,6 +122,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **🆕 v1.1.0: Interactive re-authentication prompts** - User-friendly prompts for expired tokens
 - **🆕 v1.1.0: Enhanced error handling** - Specific EDAMUserException error code reporting
 - **🆕 v1.1.0: Proactive token management** - Prevents API failures from expired credentials
+- **🆕 v1.1.1: Automatic .env token persistence** - Tokens saved to .env file automatically, eliminating re-authorization on server restart
 
 ### In Progress 🚧
 - Performance optimizations for large note collections

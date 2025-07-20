@@ -4,11 +4,18 @@
 
 const crypto = require('crypto');
 
-// Mock keytar to avoid actual Keychain operations during testing
+// Mock keytar (legacy tests still reference it)
 jest.mock('keytar', () => ({
   setPassword: jest.fn().mockResolvedValue(true),
   getPassword: jest.fn().mockResolvedValue(null),
   deletePassword: jest.fn().mockResolvedValue(true)
+}), { virtual: true });
+
+// Mock fs for testing .env file operations
+jest.mock('fs', () => ({
+  existsSync: jest.fn().mockReturnValue(true),
+  readFileSync: jest.fn().mockReturnValue('EVERNOTE_CONSUMER_KEY=test\nEVERNOTE_CONSUMER_SECRET=test'),
+  writeFileSync: jest.fn()
 }));
 
 // Mock child_process to avoid opening browser during tests
@@ -17,6 +24,7 @@ jest.mock('child_process', () => ({
 }));
 
 // Import after mocking
+const fs = require('fs');
 const keytar = require('keytar');
 const { exec } = require('child_process');
 

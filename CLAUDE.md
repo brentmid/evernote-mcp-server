@@ -123,6 +123,29 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **🆕 v1.1.0: Enhanced error handling** - Specific EDAMUserException error code reporting
 - **🆕 v1.1.0: Proactive token management** - Prevents API failures from expired credentials
 - **🆕 v1.1.1: Automatic .env token persistence** - Tokens saved to .env file automatically, eliminating re-authorization on server restart
+- **🆕 v1.1.2: Security hardening** - Resolved CVE-2021-32640 in ws dependency using npm overrides to force secure versions
+
+### Security Notes 🔒
+
+**CVE Resolution Strategy**: When Docker vulnerability scans show CVEs in dependencies:
+
+1. **Check nested dependencies**: Use `npm ls <package>` to find all instances of vulnerable packages
+2. **Chainguard vs Application CVEs**: Chainguard secures the base OS/runtime, but application dependencies need manual maintenance
+3. **Nested vulnerability pattern**: The `thrift` package had its own `ws@5.2.4` in `thrift/node_modules/ws` despite top-level `ws@8.18.3`
+4. **Solution**: Use npm `overrides` in package.json to force ALL instances of a package to use the secure version
+5. **Docker builds from GitHub**: Remember that Docker builds clone from GitHub, so security fixes must be committed/pushed before rebuilding
+6. **Verification**: Check the final Docker image with `docker run --rm --entrypoint sh image:latest -c "find /app/node_modules -name 'packagename' -type d"`
+
+**Example override configuration**:
+```json
+{
+  "overrides": {
+    "ws": "^8.18.3"
+  }
+}
+```
+
+This forces ALL ws dependencies (including nested ones in subdependencies) to use the secure version, eliminating CVE-2021-32640.
 
 ### In Progress 🚧
 - Performance optimizations for large note collections

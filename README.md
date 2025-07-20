@@ -26,6 +26,7 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 - **🆕 v1.1.0: Enhanced error handling** - Specific EDAMUserException error code reporting
 - **🆕 v1.1.0: Proactive token management** - Prevents API failures from expired credentials
 - **🆕 v1.1.1: Automatic .env token persistence** - No more re-authorization between server restarts
+- **🆕 v1.1.2: Security hardening** - Zero CVEs with npm overrides for vulnerable dependencies
 - **HTTPS-only server** with self-signed certificates for local development
 - Designed to work with **Claude Desktop MCP integrations**, with future-proofing for other LLMs (e.g., ChatGPT Desktop)
 - **Configurable debug logging** via `DEV_MODE` environment variable with automatic token redaction for security
@@ -48,6 +49,30 @@ Evernote uses OAuth 1.0a (not OAuth 2.0) for API authentication:
 - **Automatic reuse**: Stored tokens are automatically loaded and used for subsequent API calls
 - **Production environment**: Uses Evernote production API (sandbox decommissioned)
 - **Cross-platform compatibility**: Works on macOS, Linux, and Windows with file-based token storage
+
+## 🔒 Security
+
+### Vulnerability Management
+
+This project uses npm `overrides` to ensure all dependencies use secure versions, eliminating nested vulnerable packages:
+
+```json
+{
+  "overrides": {
+    "ws": "^8.18.3"
+  }
+}
+```
+
+**Why overrides are needed**: Dependencies like `thrift` may bundle their own vulnerable versions (e.g., `ws@5.2.4`) in nested `node_modules`. Standard npm updates only affect top-level dependencies, leaving vulnerable nested packages. The `overrides` field forces ALL instances of a package to use the secure version.
+
+**Security features**:
+- ✅ Zero CVEs in Docker vulnerability scans
+- ✅ Chainguard secure base images (distroless, minimal attack surface) 
+- ✅ HTTPS-only with certificate validation
+- ✅ Read-only Evernote API access
+- ✅ No third-party data transmission except to Evernote
+- ✅ Automatic token redaction in debug logs
 
 ## 💻 Setup
 

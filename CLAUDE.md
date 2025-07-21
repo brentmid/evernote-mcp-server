@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a local Evernote MCP (Model Context Protocol) server that connects Claude Desktop with Evernote accounts. It provides read-only access to Evernote notes through MCP calls like `createSearch`, `getNote`, and `getNoteContent`. Version 1.1 includes automatic token expiration detection and user-friendly re-authentication prompts.
+This is a local Evernote MCP (Model Context Protocol) server that connects Claude Desktop with Evernote accounts. It provides read-only access to Evernote notes through MCP calls like `createSearch`, `getNote`, and `getNoteContent`. Version 2.0 includes production-ready containerization and enhanced MCP protocol compliance for both local stdin/stdout and remote HTTP/JSON-RPC integration.
 
 ## Architecture
 
@@ -14,7 +14,8 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **Authentication module**: `auth.js` - handles complete OAuth 1.0a flow
 - **Authentication**: OAuth 1.0a flow (NOT OAuth 2.0), tokens automatically persisted in .env file
 - **Security model**: Read-only Evernote access, HTTPS-only server, no third-party data transmission except to Evernote
-- **MCP compliance**: Implements MCP protocol for LLM integration
+- **MCP compliance**: Implements both stdin/stdout MCP protocol (mcp-server.js) and HTTP/JSON-RPC remote server protocol (index.js /mcp endpoint)
+- **Dual integration modes**: Local Claude Desktop integration via mcp-server.js or remote integration via HTTPS JSON-RPC at /mcp endpoint
 
 ## Development Commands
 
@@ -101,6 +102,23 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - Error handling (network failures, malformed requests, access denials)
 - Configuration validation (endpoints, environment variables)
 
+## Recent Updates (v2.0.1)
+
+### 🆕 Enhanced MCP Protocol Compliance
+- **Remote MCP Server Support**: Added full HTTP/JSON-RPC 2.0 protocol support at `/mcp` endpoint for remote Claude Desktop integration
+- **Dual Format Handling**: Single endpoint supports both legacy format (`{"command": "createSearch"}`) and JSON-RPC 2.0 format (`{"jsonrpc":"2.0","method":"callTool"}`)
+- **Official MCP Specification Compliance**: Updated method names to match official spec (`listTools`, `callTool` instead of `tools/list`, `tools/call`)
+- **Enhanced Tool Definitions**: Added `type: 'tool'` field and changed `inputSchema` to `parameters` for proper MCP compliance
+- **Intelligent Response Formatting**: Human-readable summaries instead of raw JSON (e.g., "Found 5 notes" vs full JSON dump)
+- **CORS Support**: Added proper CORS headers and OPTIONS handling for remote server functionality
+- **Format Detection**: Automatic detection between legacy and JSON-RPC request formats for backward compatibility
+
+### Technical Implementation Details
+- **Claude Code Contributions**: Implemented dual-format endpoint routing, JSON-RPC 2.0 protocol compliance, CORS support, and format detection logic
+- **User Contributions**: Enhanced tool definitions with proper MCP spec compliance (`type: 'tool'`, `parameters` vs `inputSchema`), made query parameter required for createSearch, and added intelligent response summarization
+- **Integration Options**: Users can choose between local stdin/stdout integration (mcp-server.js) or remote HTTPS integration (index.js /mcp endpoint)
+- **Cross-Platform Compatibility**: Remote HTTP integration overcomes Docker stdin/stdout limitations for containerized deployments
+
 ## Current Implementation Status
 
 ### Completed Features ✅
@@ -125,6 +143,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **🆕 v1.1.1: Automatic .env token persistence** - Tokens saved to .env file automatically, eliminating re-authorization on server restart (replaced macOS Keychain for cross-platform compatibility)
 - **🆕 v1.1.2: Security hardening** - Resolved CVE-2021-32640 in ws dependency using npm overrides to force secure versions
 - **🆕 v2.0.0: Production containerization** - Full Docker support with Chainguard secure base images, token persistence, and zero-CVE security
+- **🆕 v2.0.1: Enhanced MCP protocol compliance** - Remote HTTP/JSON-RPC server support, dual-format handling, and intelligent response formatting
 
 ### Security Notes 🔒
 
@@ -187,9 +206,12 @@ This forces ALL ws dependencies (including nested ones in subdependencies) to us
 
 ## Claude Desktop Integration
 
-### Configuration Setup
+### Integration Methods
 
-Claude Desktop requires configuration in its settings file to connect to the MCP server:
+The server now supports two integration methods with Claude Desktop:
+
+#### Method 1: Local stdin/stdout Integration (Original)
+Uses direct process execution with MCP protocol over stdin/stdout.
 
 **Location**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
@@ -208,6 +230,33 @@ Claude Desktop requires configuration in its settings file to connect to the MCP
   }
 }
 ```
+
+#### Method 2: Remote HTTP/JSON-RPC Integration (New in v2.0.1)
+Uses HTTPS requests to the containerized server for cross-platform compatibility.
+
+**Configuration**:
+```json
+{
+  "mcpServers": {
+    "evernote": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-everything",
+        "--url", "https://localhost:3443/mcp"
+      ],
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
+    }
+  }
+}
+```
+
+**Benefits of Remote Integration**:
+- Works with Docker containers (overcomes stdin/stdout Docker limitations)
+- Cross-platform compatibility (Windows, Linux, macOS)
+- Can connect to remote server instances
+- Easier deployment in containerized environments
 
 ### Integration Steps
 

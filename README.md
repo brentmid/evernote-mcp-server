@@ -16,14 +16,21 @@ Enable local, secure AI-assisted access to your Evernote notes. For example:
 
 This project allows the LLM to send MCP calls like `createSearch`, `getNote`, and `getNoteContent`, which are translated into API calls to Evernote. The response is returned to the LLM in a structured format.
 
-## 🚀 What's New in v2.0
+## 🚀 What's New in v2.0+
 
-**Production-Ready Docker Deployment**
+**v2.0.0: Production-Ready Docker Deployment**
 - 🐳 **One-command setup**: `docker-compose up` for instant deployment
 - 🔐 **Persistent authentication**: OAuth tokens survive container restarts
 - 🛡️ **Security-first**: Chainguard distroless base images with zero CVEs
 - ⚡ **Optimized builds**: Multi-stage Docker builds for minimal production footprint
 - 🔧 **Auto-configuration**: SSL certificates and environment setup handled automatically
+
+**v2.0.1: Enhanced MCP Protocol Support**
+- 🌐 **Remote MCP Server**: HTTP/JSON-RPC 2.0 support for containerized Claude Desktop integration
+- 🔄 **Dual Integration Modes**: Choose between local stdin/stdout or remote HTTPS integration
+- 📋 **MCP Specification Compliance**: Updated tool definitions and method names to match official MCP spec
+- 🎯 **Intelligent Responses**: Human-readable summaries instead of raw JSON dumps
+- 🌍 **Cross-Platform Compatibility**: Overcomes Docker stdin/stdout limitations for Windows/Linux
 
 ## ✅ Features
 
@@ -37,6 +44,7 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 - **🆕 v1.1.1: Automatic .env token persistence** - Tokens saved to .env file automatically (replaced macOS Keychain for cross-platform compatibility)
 - **🆕 v1.1.2: Security hardening** - Zero CVEs with npm overrides for vulnerable dependencies
 - **🆕 v2.0.0: Production-ready Docker deployment** - Full containerization with Chainguard secure images
+- **🆕 v2.0.1: Enhanced MCP protocol compliance** - Remote HTTP/JSON-RPC server support and intelligent response formatting
 - **HTTPS-only server** with self-signed certificates for local development
 - Designed to work with **Claude Desktop MCP integrations**, with future-proofing for other LLMs (e.g., ChatGPT Desktop)
 - **Configurable debug logging** via `DEV_MODE` environment variable with automatic token redaction for security
@@ -402,19 +410,18 @@ Docker deployment offers several performance benefits:
 
 ## 🔗 Claude Desktop Integration
 
-After completing the server setup above, you need to configure Claude Desktop to connect to your MCP server.
+The server supports two integration methods with Claude Desktop:
 
-### Step 1: Locate Claude Desktop Configuration
+### Method 1: Local stdin/stdout Integration (Original)
 
-Claude Desktop stores its configuration at:
+After completing the server setup above, configure Claude Desktop for direct process execution.
+
+**Step 1: Locate Claude Desktop Configuration**
 ```
 ~/Library/Application Support/Claude/claude_desktop_config.json
 ```
 
-### Step 2: Configure MCP Server
-
-Edit the Claude Desktop configuration file to include your Evernote MCP server:
-
+**Step 2: Configure Local MCP Server**
 ```json
 {
   "mcpServers": {
@@ -429,6 +436,39 @@ Edit the Claude Desktop configuration file to include your Evernote MCP server:
   }
 }
 ```
+
+### Method 2: Remote HTTP/JSON-RPC Integration (New in v2.0.1)
+
+For containerized deployments or cross-platform compatibility.
+
+**Step 1: Start Containerized Server**
+```bash
+docker-compose up -d
+```
+
+**Step 2: Configure Remote MCP Server**
+```json
+{
+  "mcpServers": {
+    "evernote": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-everything",
+        "--url", "https://localhost:3443/mcp"
+      ],
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
+    }
+  }
+}
+```
+
+**Benefits of Remote Integration:**
+- ✅ Works with Docker containers (overcomes stdin/stdout limitations)
+- ✅ Cross-platform compatibility (Windows, Linux, macOS)
+- ✅ Can connect to remote server instances
+- ✅ Better for production deployments
 
 **Important**: Replace the placeholder values with your actual Evernote API credentials.
 
@@ -650,7 +690,31 @@ The test suite ensures OAuth 1.0a implementation correctness, validates all serv
 
 ## 📋 Changelog
 
-### v1.1.0 (Latest)
+### v2.0.1 (Latest)
+**🆕 Enhanced MCP Protocol Support:**
+- **Remote MCP Server Support** - Added HTTP/JSON-RPC 2.0 protocol support at `/mcp` endpoint
+- **Dual Integration Modes** - Support for both local stdin/stdout and remote HTTPS integration
+- **MCP Specification Compliance** - Updated tool definitions and method names to match official MCP spec
+- **Enhanced Tool Definitions** - Added `type: 'tool'` field and changed `inputSchema` to `parameters`
+- **Intelligent Response Formatting** - Human-readable summaries instead of raw JSON dumps
+- **Cross-Platform Docker Integration** - Overcomes stdin/stdout limitations for containerized deployments
+- **CORS Support** - Proper CORS headers and OPTIONS handling for remote servers
+- **Format Detection** - Automatic detection between legacy and JSON-RPC request formats
+
+**🔧 Technical Improvements:**
+- Dual-format endpoint routing with backward compatibility
+- JSON-RPC 2.0 protocol implementation with error handling
+- Enhanced user experience with contextual response summaries
+- Required parameter validation (e.g., query parameter for createSearch)
+
+### v2.0.0
+**🐳 Production-Ready Docker Deployment:**
+- Full containerization with Chainguard secure base images
+- Zero-CVE security scanning and npm overrides
+- OAuth token persistence across container restarts
+- Multi-stage Docker builds for optimized production images
+
+### v1.1.0
 **🆕 New Features:**
 - **Automatic token expiration detection** - Server checks token validity on startup
 - **Interactive re-authentication prompts** - User-friendly prompts for expired tokens  

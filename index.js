@@ -179,7 +179,7 @@ async function handleJsonRpcRequest(request, res) {
       });
     }
     
-    if (request.method === 'tools/list') {
+    if (request.method === 'listTools') {
       const tools = [
         {
           name: 'createSearch',
@@ -284,7 +284,7 @@ async function handleJsonRpcRequest(request, res) {
       });
     }
     
-    if (request.method === 'tools/call') {
+    if (request.method === 'callTool') {
       const { name, arguments: args } = request.params;
       
       // Get authentication token

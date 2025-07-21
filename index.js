@@ -121,7 +121,7 @@ app.get('/oauth/callback', async (req, res) => {
  * MCP (Model Context Protocol) endpoint - POST request to /mcp
  * Dispatches requests based on command field and routes to appropriate functions
  */
-// MCP over HTTP endpoint (JSON-RPC) for Claude Desktop Remote MCP Server
+// MCP endpoint supporting both JSON-RPC 2.0 and legacy formats
 app.post('/mcp', async (req, res) => {
   // Set CORS headers for remote MCP server support
   res.setHeader('Content-Type', 'application/json');
@@ -132,6 +132,35 @@ app.post('/mcp', async (req, res) => {
   try {
     const request = req.body;
     
+    // Detect format: JSON-RPC 2.0 vs Legacy
+    const isJsonRpc = request && request.jsonrpc === '2.0';
+    const isLegacy = request && request.command && typeof request.command === 'string';
+    
+    if (isJsonRpc) {
+      // Handle JSON-RPC 2.0 format for remote MCP servers
+      return await handleJsonRpcRequest(request, res);
+    } else if (isLegacy) {
+      // Handle legacy format for backward compatibility  
+      return await handleLegacyRequest(request, res);
+    } else {
+      // Invalid request format
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'Request must be either JSON-RPC 2.0 format or legacy format with command field'
+      });
+    }
+  } catch (error) {
+    console.error('MCP endpoint error:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+// Handle JSON-RPC 2.0 requests
+async function handleJsonRpcRequest(request, res) {
+  try {
     // Handle MCP protocol messages
     if (request.method === 'initialize') {
       return res.json({
@@ -325,7 +354,7 @@ app.post('/mcp', async (req, res) => {
     console.error('MCP HTTP Error:', error);
     res.json({
       jsonrpc: "2.0",
-      id: req.body?.id || null,
+      id: request?.id || null,
       error: {
         code: -32603,
         message: 'Internal error',
@@ -333,18 +362,10 @@ app.post('/mcp', async (req, res) => {
       }
     });
   }
-});
+}
 
-// Handle CORS preflight requests for MCP endpoint
-app.options('/mcp', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.status(200).end();
-});
-
-// Legacy MCP endpoint for backward compatibility
-app.post('/mcp-legacy', async (req, res) => {
+// Handle legacy format requests
+async function handleLegacyRequest(request, res) {
   try {
     // Check if we have valid authentication
     const tokenData = await auth.getTokenFromEnv();
@@ -355,25 +376,9 @@ app.post('/mcp-legacy', async (req, res) => {
       });
     }
     
-    console.error('🔄 MCP request received:', req.body);
+    console.error('🔄 Legacy MCP request received:', request);
     
-    // Validate request structure
-    if (!req.body || typeof req.body !== 'object') {
-      return res.status(400).json({
-        error: 'Invalid request',
-        message: 'Request body must be a JSON object'
-      });
-    }
-    
-    const { command, args = {} } = req.body;
-    
-    // Validate command field
-    if (!command || typeof command !== 'string') {
-      return res.status(400).json({
-        error: 'Invalid request',
-        message: 'Missing or invalid "command" field'
-      });
-    }
+    const { command, args = {} } = request;
     
     // Dispatch to appropriate function based on command
     let result;
@@ -397,28 +402,31 @@ app.post('/mcp-legacy', async (req, res) => {
       default:
         return res.status(400).json({
           error: 'Unknown command',
-          message: `Command "${command}" is not supported`,
-          supportedCommands: ['createSearch', 'getSearch', 'getNote', 'getNoteContent']
+          message: `Unsupported command: ${command}. Supported commands: createSearch, getSearch, getNote, getNoteContent`
         });
     }
     
-    // Return successful response
-    res.json({
-      success: true,
-      command: command,
-      data: result
-    });
-    
-    console.error(`✅ MCP command "${command}" completed successfully`);
+    console.error('✅ MCP command completed successfully');
+    res.json(result);
     
   } catch (error) {
-    console.error('❌ MCP request error:', error.message);
-    res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message
+    console.error('❌ MCP command failed:', error);
+    res.status(500).json({
+      error: 'Command execution failed',
+      message: error.message,
+      timestamp: new Date().toISOString()
     });
   }
+}
+
+// Handle CORS preflight requests for MCP endpoint
+app.options('/mcp', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.status(200).end();
 });
+
 
 /**
  * Load SSL certificate and private key for HTTPS

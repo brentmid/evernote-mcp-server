@@ -325,6 +325,25 @@ docker run -d \
 docker logs -f evernote-mcp
 ```
 
+### Automated Container Updates
+
+The repository includes `evernote-mcp-daily-rebuild.sh`, a shell script designed for daily automated rebuilds to keep your Chainguard base images up to date:
+
+```bash
+# Set up daily rebuild (example cron job)
+0 2 * * * /path/to/your/evernote-mcp-server/evernote-mcp-daily-rebuild.sh >> /tmp/evernote-mcp-rebuild.log 2>&1
+```
+
+**What the script does:**
+- Pulls the latest `cgr.dev/chainguard/node:latest` base image
+- Rebuilds the container with `--no-cache` to ensure fresh dependencies
+- Restarts the service with zero downtime using Docker Compose
+
+**Security benefits:**
+- Ensures you always have the latest security patches from Chainguard
+- Maintains zero-CVE status with automated base image updates
+- No manual intervention required for security updates
+
 ### Docker Configuration
 
 #### Environment Variables

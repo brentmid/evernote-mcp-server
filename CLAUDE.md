@@ -34,6 +34,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **Build Docker image directly**: `docker build --build-arg GITHUB_REPO_URL=https://github.com/yourusername/evernote-mcp-server.git -t evernote-mcp-server .`
 - **Run Docker container**: `docker run -d --name evernote-mcp -p 3443:3443 -e EVERNOTE_CONSUMER_KEY=your_key -e EVERNOTE_CONSUMER_SECRET=your_secret evernote-mcp-server`
 - **Debug Docker container**: `docker-compose exec evernote-mcp-server sh`
+- **Daily container rebuilds**: `./evernote-mcp-daily-rebuild.sh` (automated script to pull latest Chainguard base image and rebuild with zero downtime)
 
 ### Testing Commands
 - **Run all tests**: `npm test` (38 tests across 3 test suites)
@@ -308,6 +309,7 @@ evernote-mcp-server/
 ├── mcp.json              # MCP tool manifest for Claude Desktop
 ├── mcp-server.js         # MCP server entry point for Claude Desktop integration
 ├── claude_desktop_config.json  # EXAMPLE Claude Desktop config (NOT required for server operation - copy to Claude app folder)
+├── evernote-mcp-daily-rebuild.sh  # Automated daily rebuild script for container security updates
 ├── tools/                # MCP tool implementations
 │   ├── createSearch.js   # Real Thrift-based search implementation
 │   ├── getSearch.js      # Search result caching and retrieval

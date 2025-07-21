@@ -121,8 +121,8 @@ app.get('/oauth/callback', async (req, res) => {
  * MCP (Model Context Protocol) endpoint - POST request to /mcp
  * Dispatches requests based on command field and routes to appropriate functions
  */
-// MCP over HTTP endpoint (JSON-RPC) for Claude Desktop
-app.post('/mcp-jsonrpc', async (req, res) => {
+// MCP over HTTP endpoint (JSON-RPC) for Claude Desktop Remote MCP Server
+app.post('/mcp', async (req, res) => {
   // Set CORS headers for remote MCP server support
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -336,14 +336,15 @@ app.post('/mcp-jsonrpc', async (req, res) => {
 });
 
 // Handle CORS preflight requests for MCP endpoint
-app.options('/mcp-jsonrpc', (req, res) => {
+app.options('/mcp', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.status(200).end();
 });
 
-app.post('/mcp', async (req, res) => {
+// Legacy MCP endpoint for backward compatibility
+app.post('/mcp-legacy', async (req, res) => {
   try {
     // Check if we have valid authentication
     const tokenData = await auth.getTokenFromEnv();

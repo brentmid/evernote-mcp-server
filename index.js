@@ -123,6 +123,12 @@ app.get('/oauth/callback', async (req, res) => {
  */
 // MCP over HTTP endpoint (JSON-RPC) for Claude Desktop
 app.post('/mcp-jsonrpc', async (req, res) => {
+  // Set CORS headers for remote MCP server support
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
   try {
     const request = req.body;
     
@@ -327,6 +333,14 @@ app.post('/mcp-jsonrpc', async (req, res) => {
       }
     });
   }
+});
+
+// Handle CORS preflight requests for MCP endpoint
+app.options('/mcp-jsonrpc', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.status(200).end();
 });
 
 app.post('/mcp', async (req, res) => {

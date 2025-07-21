@@ -182,9 +182,10 @@ async function handleJsonRpcRequest(request, res) {
     if (request.method === 'listTools') {
       const tools = [
         {
+          type: 'tool',
           name: 'createSearch',
           description: 'Search for notes in Evernote using natural language queries',
-          inputSchema: {
+          parameters: {
             type: 'object',
             properties: {
               query: {
@@ -224,13 +225,14 @@ async function handleJsonRpcRequest(request, res) {
                 description: 'Optional: Only return notes updated after this date (YYYY-MM-DD)',
               },
             },
-            required: [],
+            required: ['query'],
           },
         },
         {
+          type: 'tool',
           name: 'getSearch',
           description: 'Get details about a previously executed search by its ID',
-          inputSchema: {
+          parameters: {
             type: 'object',
             properties: {
               searchId: {
@@ -242,9 +244,10 @@ async function handleJsonRpcRequest(request, res) {
           },
         },
         {
+          type: 'tool',
           name: 'getNote',
           description: 'Retrieve metadata and basic information for a specific note by its GUID',
-          inputSchema: {
+          parameters: {
             type: 'object',
             properties: {
               noteGuid: {
@@ -256,9 +259,10 @@ async function handleJsonRpcRequest(request, res) {
           },
         },
         {
+          type: 'tool',
           name: 'getNoteContent',
           description: 'Retrieve the full content of a specific note in a readable format',
-          inputSchema: {
+          parameters: {
             type: 'object',
             properties: {
               noteGuid: {
@@ -276,7 +280,7 @@ async function handleJsonRpcRequest(request, res) {
           },
         },
       ];
-      
+
       return res.json({
         jsonrpc: "2.0",
         id: request.id,
@@ -286,7 +290,7 @@ async function handleJsonRpcRequest(request, res) {
     
     if (request.method === 'callTool') {
       const { name, arguments: args } = request.params;
-      
+
       // Get authentication token
       const tokenData = await auth.getTokenFromEnv();
       if (!tokenData) {
@@ -326,6 +330,29 @@ async function handleJsonRpcRequest(request, res) {
           });
       }
 
+      // Human-readable text summary
+      let summary = '';
+      try {
+        if (typeof result === 'string') {
+          summary = result;
+        } else if (result && typeof result === 'object') {
+          // Try to provide a short summary for common result shapes
+          if ('notes' in result && Array.isArray(result.notes)) {
+            summary = `Found ${result.notes.length} notes.`;
+          } else if ('note' in result && result.note && typeof result.note.title === 'string') {
+            summary = `Note: "${result.note.title}" (${result.note.guid || ''})`;
+          } else if ('content' in result && typeof result.content === 'string') {
+            summary = `Note content (${result.content.length} chars).`;
+          } else {
+            summary = JSON.stringify(result, null, 2);
+          }
+        } else {
+          summary = JSON.stringify(result, null, 2);
+        }
+      } catch (err) {
+        summary = JSON.stringify(result, null, 2);
+      }
+
       return res.json({
         jsonrpc: "2.0",
         id: request.id,
@@ -333,7 +360,7 @@ async function handleJsonRpcRequest(request, res) {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(result, null, 2),
+              text: summary,
             },
           ],
         }

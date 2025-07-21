@@ -422,6 +422,10 @@ After completing the server setup above, configure Claude Desktop for direct pro
 ```
 
 **Step 2: Configure Local MCP Server**
+
+Choose one of these configurations based on your setup:
+
+**Option A: Direct Node.js execution (local development)**
 ```json
 {
   "mcpServers": {
@@ -436,6 +440,38 @@ After completing the server setup above, configure Claude Desktop for direct pro
   }
 }
 ```
+
+**Option B: Docker container execution (recommended for production)**
+```json
+{
+  "mcpServers": {
+    "evernote": {
+      "command": "docker",
+      "args": [
+        "exec", "-i", "--tty=false",
+        "evernote-mcp-server-evernote-mcp-server-1",
+        "node", "mcp-server.js"
+      ]
+    }
+  }
+}
+```
+
+**📁 Example Configuration File**
+
+An example `claude_desktop_config.json` file is included in this repository. To use it:
+
+1. **Copy the example**: `cp claude_desktop_config.json ~/Library/Application\ Support/Claude/claude_desktop_config.json`
+2. **Customize for your setup**:
+   - **Docker users**: Update the container name if different (check with `docker ps`)
+   - **Podman users**: Replace `docker` with `podman` in the command
+   - **Local setup**: Use Option A configuration instead
+3. **Restart Claude Desktop** completely (⌘+Q then reopen)
+
+**Container Name Customization**:
+- **Default Docker Compose**: `evernote-mcp-server-evernote-mcp-server-1`
+- **Custom container name**: Check your running containers with `docker ps`
+- **Different runtime**: Replace `docker` with `podman`, `nerdctl`, etc.
 
 ### Method 2: Remote HTTP/JSON-RPC Integration (New in v2.0.1)
 

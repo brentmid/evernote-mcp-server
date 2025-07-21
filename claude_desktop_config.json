@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "evernote": {
+      "command": "docker",
+      "args": [
+        "exec", "-i", "--tty=false",
+        "evernote-mcp-server-evernote-mcp-server-1",
+        "node", "mcp-server.js"
+      ]
+    }
+  }
+}

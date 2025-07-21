@@ -307,6 +307,7 @@ evernote-mcp-server/
 ├── auth.js               # OAuth 1.0a authentication module
 ├── mcp.json              # MCP tool manifest for Claude Desktop
 ├── mcp-server.js         # MCP server entry point for Claude Desktop integration
+├── claude_desktop_config.json  # EXAMPLE Claude Desktop config (NOT required for server operation - copy to Claude app folder)
 ├── tools/                # MCP tool implementations
 │   ├── createSearch.js   # Real Thrift-based search implementation
 │   ├── getSearch.js      # Search result caching and retrieval
@@ -332,3 +333,9 @@ evernote-mcp-server/
 ├── README.md             # Detailed project documentation
 └── CLAUDE.md             # This file - guidance for Claude Code
 ```
+
+**Important Notes**:
+- `claude_desktop_config.json` is an EXAMPLE file for user reference - it does NOT need to be in the project root for the server to function
+- Users must copy and customize this file to `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS
+- The example shows Docker container integration - users with different setups need to modify the command/args accordingly
+- This file is included in git for user convenience, not as a functional requirement of the codebase

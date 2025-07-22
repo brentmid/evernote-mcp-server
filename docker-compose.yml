@@ -20,9 +20,8 @@ services:
       - EVERNOTE_EDAM_EXPIRES=${EVERNOTE_EDAM_EXPIRES:-}
       - EVERNOTE_EDAM_NOTE_STORE_URL=${EVERNOTE_EDAM_NOTE_STORE_URL:-}
       - EVERNOTE_EDAM_WEB_API_URL_PREFIX=${EVERNOTE_EDAM_WEB_API_URL_PREFIX:-}
-    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "const https = require('https'); const options = { hostname: 'localhost', port: 3443, path: '/health', method: 'GET', rejectUnauthorized: false }; const req = https.request(options, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.end();"]
+      test: ["CMD", "/usr/bin/node", "-e", "require('https').get({hostname:'localhost',port:3443,rejectUnauthorized:false},res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3

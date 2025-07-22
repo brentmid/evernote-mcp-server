@@ -1,10 +1,10 @@
 {
   "mcpServers": {
     "evernote": {
-      "command": "docker",
+      "command": "podman",
       "args": [
         "exec", "-i", "--tty=false",
-        "evernote-mcp-server-evernote-mcp-server-1",
+        "evernote-mcp-server_evernote-mcp-server_1",
         "node", "mcp-server.js"
       ]
     }

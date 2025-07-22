@@ -36,6 +36,16 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **Debug Docker container**: `docker-compose exec evernote-mcp-server sh`
 - **Daily container rebuilds**: `./evernote-mcp-daily-rebuild.sh` (automated script to pull latest Chainguard base image and rebuild with zero downtime)
 
+### Podman Development (Docker Alternative)
+- **Build and run with Podman Compose**: `podman-compose up --build` or `docker-compose up --build` (if using docker-compose with Podman)
+- **Run in background**: `podman-compose up -d --build`
+- **View logs**: `podman-compose logs -f evernote-mcp-server`
+- **Stop and remove**: `podman-compose down`
+- **Build Podman image directly**: `podman build --build-arg GITHUB_REPO_URL=https://github.com/yourusername/evernote-mcp-server.git -t evernote-mcp-server .`
+- **Run Podman container**: `podman run -d --name evernote-mcp -p 3443:3443 -e EVERNOTE_CONSUMER_KEY=your_key -e EVERNOTE_CONSUMER_SECRET=your_secret evernote-mcp-server`
+- **Debug Podman container**: `podman exec -it evernote-mcp-server_evernote-mcp-server_1 sh`
+- **List Podman containers**: `podman ps` (note: container names use underscores instead of hyphens)
+
 ### Testing Commands
 - **Run all tests**: `npm test` (38 tests across 3 test suites)
 - **Run tests with coverage**: `npm run test:coverage` (70%+ branch, 80%+ function/line coverage)
@@ -216,7 +226,9 @@ Uses direct process execution with MCP protocol over stdin/stdout.
 
 **Location**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-**Configuration**:
+**Configuration Options**:
+
+**Option A: Local Node.js execution**
 ```json
 {
   "mcpServers": {
@@ -231,6 +243,43 @@ Uses direct process execution with MCP protocol over stdin/stdout.
   }
 }
 ```
+
+**Option B: Docker container execution**
+```json
+{
+  "mcpServers": {
+    "evernote": {
+      "command": "docker",
+      "args": [
+        "exec", "-i", "--tty=false",
+        "evernote-mcp-server-evernote-mcp-server-1",
+        "node", "mcp-server.js"
+      ]
+    }
+  }
+}
+```
+
+**Option C: Podman container execution**
+```json
+{
+  "mcpServers": {
+    "evernote": {
+      "command": "podman",
+      "args": [
+        "exec", "-i", "--tty=false",
+        "evernote-mcp-server_evernote-mcp-server_1",
+        "node", "mcp-server.js"
+      ]
+    }
+  }
+}
+```
+
+**Important Notes**:
+- **Docker container names**: Use hyphens (e.g., `evernote-mcp-server-evernote-mcp-server-1`)
+- **Podman container names**: Use underscores (e.g., `evernote-mcp-server_evernote-mcp-server_1`)
+- **Container name verification**: Check with `docker ps` or `podman ps`
 
 #### Method 2: Remote HTTP/JSON-RPC Integration (New in v2.0.1)
 Uses HTTPS requests to the containerized server for cross-platform compatibility.

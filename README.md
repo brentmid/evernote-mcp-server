@@ -476,6 +476,22 @@ Choose one of these configurations based on your setup:
 }
 ```
 
+**Option C: Podman container execution (Docker alternative)**
+```json
+{
+  "mcpServers": {
+    "evernote": {
+      "command": "podman",
+      "args": [
+        "exec", "-i", "--tty=false",
+        "evernote-mcp-server_evernote-mcp-server_1",
+        "node", "mcp-server.js"
+      ]
+    }
+  }
+}
+```
+
 **📁 Example Configuration File**
 
 An example `claude_desktop_config.json` file is included in this repository. To use it:
@@ -483,13 +499,14 @@ An example `claude_desktop_config.json` file is included in this repository. To 
 1. **Copy the example**: `cp claude_desktop_config.json ~/Library/Application\ Support/Claude/claude_desktop_config.json`
 2. **Customize for your setup**:
    - **Docker users**: Update the container name if different (check with `docker ps`)
-   - **Podman users**: Replace `docker` with `podman` in the command
+   - **Podman users**: Replace `docker` with `podman` and update container name (check with `podman ps`)
    - **Local setup**: Use Option A configuration instead
 3. **Restart Claude Desktop** completely (⌘+Q then reopen)
 
 **Container Name Customization**:
 - **Default Docker Compose**: `evernote-mcp-server-evernote-mcp-server-1`
-- **Custom container name**: Check your running containers with `docker ps`
+- **Default Podman Compose**: `evernote-mcp-server_evernote-mcp-server_1` (note: underscores instead of hyphens)
+- **Custom container name**: Check your running containers with `docker ps` or `podman ps`
 - **Different runtime**: Replace `docker` with `podman`, `nerdctl`, etc.
 
 ### Method 2: Remote HTTP/JSON-RPC Integration (New in v2.0.1)

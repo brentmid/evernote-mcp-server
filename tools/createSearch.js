@@ -113,9 +113,16 @@ async function makeNoteStoreRequest(method, data, tokenData) {
     
   } catch (error) {
     console.error(`❌ Thrift call ${method} failed:`, error.message);
+    // Always log basic error details to prevent silent failures
+    console.error(`📍 Error type: ${error.name || 'Unknown'}`);
+    
     if (DEV_MODE) {
       console.error(`❌ Full error details:`, error);
       logEvernoteResponse(method, { error: error.message }, 500);
+    } else {
+      // In production, still log essential error info
+      console.error(`📍 Error code: ${error.errorCode || 'none'}`);
+      console.error(`📍 Error parameter: ${error.parameter || 'none'}`);
     }
     
     // Handle EDAMUserException with specific error codes
@@ -377,6 +384,8 @@ async function createSearch(args, tokenData) {
     
   } catch (error) {
     console.error('❌ createSearch error:', error.message);
+    console.error('📍 Error details:', error.name || 'Unknown error type');
+    console.error('📍 Stack trace:', error.stack);
     
     // Provide more specific error messages
     let errorMessage;

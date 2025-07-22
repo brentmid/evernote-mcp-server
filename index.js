@@ -464,6 +464,21 @@ const sslOptions = {
 };
 
 /**
+ * Global error handlers to prevent process crashes
+ */
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  console.error('📍 Stack:', error.stack);
+  // Don't exit the process - log and continue
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise);
+  console.error('📍 Reason:', reason);
+  // Don't exit the process - log and continue
+});
+
+/**
  * Initialize authentication and start the HTTPS server
  * Checks for existing tokens, validates expiration, and initiates OAuth flow if needed
  */
@@ -494,7 +509,8 @@ async function startServer() {
       } else {
         console.error('❌ Server cannot start without valid authentication.');
         console.error('💡 Run the server again and choose "y" to re-authenticate.');
-        process.exit(1);
+        console.error('⚠️ Server will continue running but authentication is required for API calls.');
+        // Don't exit - allow server to run but API calls will fail gracefully
       }
     } else if (!tokenStatus.hasToken) {
       // No tokens at all - start authentication flow
@@ -526,7 +542,9 @@ async function startServer() {
     
   } catch (error) {
     console.error('❌ Server startup failed:', error.message);
-    process.exit(1);
+    console.error('📍 Error details:', error.stack || error);
+    console.error('⚠️ Server startup encountered an error but will continue running.');
+    // Don't exit - log the error and let the server continue
   }
 }
 

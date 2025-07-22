@@ -113,9 +113,19 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - Error handling (network failures, malformed requests, access denials)
 - Configuration validation (endpoints, environment variables)
 
-## Recent Updates (v2.0.1)
+## Recent Updates (v2.1.0)
 
-### 🆕 Enhanced MCP Protocol Compliance
+### 🆕 Container Stability and Error Resilience
+- **Global Error Handling**: Added `uncaughtException` and `unhandledRejection` handlers to prevent process crashes
+- **Container Stability**: Eliminated 2-3 minute restart cycles in containerized deployments (Podman/Docker)
+- **Enhanced Error Logging**: Improved production error visibility without requiring DEV_MODE
+- **Graceful Degradation**: Server continues running even with authentication or API failures  
+- **Removed Process Exits**: Replaced fatal `process.exit(1)` calls with graceful error handling
+- **Production Reliability**: Fixed silent errors that caused container restarts in production mode
+
+## Previous Updates (v2.0.1)
+
+### Enhanced MCP Protocol Compliance
 - **Remote MCP Server Support**: Added full HTTP/JSON-RPC 2.0 protocol support at `/mcp` endpoint for remote Claude Desktop integration
 - **Dual Format Handling**: Single endpoint supports both legacy format (`{"command": "createSearch"}`) and JSON-RPC 2.0 format (`{"jsonrpc":"2.0","method":"callTool"}`)
 - **Official MCP Specification Compliance**: Updated method names to match official spec (`listTools`, `callTool` instead of `tools/list`, `tools/call`)
@@ -155,6 +165,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **🆕 v1.1.2: Security hardening** - Resolved CVE-2021-32640 in ws dependency using npm overrides to force secure versions
 - **🆕 v2.0.0: Production containerization** - Full Docker support with Chainguard secure base images, token persistence, and zero-CVE security
 - **🆕 v2.0.1: Enhanced MCP protocol compliance** - Remote HTTP/JSON-RPC server support, dual-format handling, and intelligent response formatting
+- **🆕 v2.1.0: Container stability improvements** - Global error handling, eliminated restart cycles, and graceful degradation for production reliability
 
 ### Security Notes 🔒
 
@@ -348,6 +359,48 @@ Claude: [Uses createSearch with date filters] "Here are your recent meeting note
 - Use `DEV_MODE=true` for detailed API logging
 - Verify tokens in .env file or environment variables
 - Test server endpoints directly with curl before Claude Desktop integration
+
+### Container Restart Issues (Podman/Docker)
+
+**Problem**: Container restarts every 2-3 minutes automatically
+
+**Root Cause**: Node.js process exits due to unhandled errors triggering `process.exit(1)` calls in error handlers (`index.js:497` and `index.js:529`). Even with restart policy "no", container runtime automatically restarts failed processes.
+
+**Symptoms**:
+- Regular restart pattern every 2-3 minutes
+- Container shows as "healthy" but keeps restarting
+- No error messages in standard logs
+- Server starts successfully but exits later during operation
+
+**Diagnosis Commands**:
+```bash
+# Check container status and restart pattern
+podman ps -a
+podman logs --timestamps --since=15m container_name | grep "Starting Evernote"
+
+# Check restart policy
+podman inspect container_name --format='{{.HostConfig.RestartPolicy.Name}}'
+
+# Monitor resource usage
+podman stats --no-stream container_name
+```
+
+**Solutions**:
+
+**Immediate Debug**: Enable detailed logging to see actual errors
+```bash
+podman-compose down
+DEV_MODE=true podman-compose up
+```
+
+**Permanent Fix**: Replace `process.exit(1)` calls in error handlers with proper error logging that doesn't terminate the process. The server should handle errors gracefully without exiting.
+
+**Key Files with Exit Calls**:
+- `index.js:497` - Authentication failure exit
+- `index.js:529` - General startup error exit  
+- `mcp-server.js:227` and `mcp-server.js:246` - MCP server exits
+
+**Error Pattern**: Server starts → encounters runtime error → `catch` block executes → `process.exit(1)` → container runtime restarts → repeat
 
 ## File Structure
 

@@ -32,6 +32,13 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 - 🎯 **Intelligent Responses**: Human-readable summaries instead of raw JSON dumps
 - 🌍 **Cross-Platform Compatibility**: Overcomes Docker stdin/stdout limitations for Windows/Linux
 
+**v2.1.0: Container Stability and Error Resilience**
+- 🛡️ **Global Error Handling**: Added uncaught exception and unhandled rejection handlers to prevent process crashes
+- 🔄 **Container Stability**: Eliminated 2-3 minute restart cycles in containerized deployments
+- 📊 **Enhanced Error Logging**: Improved production error visibility without requiring DEV_MODE
+- 🎯 **Graceful Degradation**: Server continues running even with authentication or API failures
+- 🚫 **Removed Process Exits**: Replaced fatal process.exit() calls with graceful error handling
+
 ## ✅ Features
 
 - Supports **read-only Evernote access** (searching, reading, and listing notes)
@@ -45,6 +52,7 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 - **🆕 v1.1.2: Security hardening** - Zero CVEs with npm overrides for vulnerable dependencies
 - **🆕 v2.0.0: Production-ready Docker deployment** - Full containerization with Chainguard secure images
 - **🆕 v2.0.1: Enhanced MCP protocol compliance** - Remote HTTP/JSON-RPC server support and intelligent response formatting
+- **🆕 v2.1.0: Container stability improvements** - Eliminated restart cycles with global error handling and graceful degradation
 - **HTTPS-only server** with self-signed certificates for local development
 - Designed to work with **Claude Desktop MCP integrations**, with future-proofing for other LLMs (e.g., ChatGPT Desktop)
 - **Configurable debug logging** via `DEV_MODE` environment variable with automatic token redaction for security

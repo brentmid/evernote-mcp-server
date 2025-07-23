@@ -243,7 +243,8 @@ if (require.main === module) {
   const server = new EvernoteMCPServer();
   server.start().catch((error) => {
     console.error('Failed to start MCP server:', error);
-    process.exit(1);
+    console.error('❌ MCP server will continue running but may not function properly');
+    // Don't exit the process - log error and continue
   });
 }
 

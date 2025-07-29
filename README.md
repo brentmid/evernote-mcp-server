@@ -34,10 +34,11 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 
 **v2.1.0: Container Stability and Error Resilience**
 - 🛡️ **Global Error Handling**: Added uncaught exception and unhandled rejection handlers to prevent process crashes
-- 🔄 **Container Stability**: Eliminated 2-3 minute restart cycles in containerized deployments
-- 📊 **Enhanced Error Logging**: Improved production error visibility without requiring DEV_MODE
+- 🔄 **Container Stability**: Eliminated 2-3 minute restart cycles in containerized deployments (Podman/Docker)
+- 📊 **Enhanced Error Logging**: Improved production error visibility with timestamps and PID tracking
 - 🎯 **Graceful Degradation**: Server continues running even with authentication or API failures
 - 🚫 **Removed Process Exits**: Replaced fatal process.exit() calls with graceful error handling
+- ⚡ **Production Tested**: Container stability verified in production mode without DEV_MODE debug logging
 
 ## ✅ Features
 

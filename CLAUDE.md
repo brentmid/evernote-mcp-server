@@ -120,10 +120,11 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 ### 🆕 Container Stability and Error Resilience
 - **Global Error Handling**: Added `uncaughtException` and `unhandledRejection` handlers to prevent process crashes
 - **Container Stability**: Eliminated 2-3 minute restart cycles in containerized deployments (Podman/Docker)
-- **Enhanced Error Logging**: Improved production error visibility without requiring DEV_MODE
+- **Enhanced Error Logging**: Improved production error visibility with timestamps and PID tracking
 - **Graceful Degradation**: Server continues running even with authentication or API failures  
 - **Removed Process Exits**: Replaced fatal `process.exit(1)` calls with graceful error handling
 - **Production Reliability**: Fixed silent errors that caused container restarts in production mode
+- **✅ Verified Fix**: Container stability confirmed for 50+ minutes in production mode (DEV_MODE=false)
 
 ## Previous Updates (v2.0.1)
 
@@ -366,12 +367,12 @@ Claude: [Uses createSearch with date filters] "Here are your recent meeting note
 
 **Problem**: Container restarts every 2-3 minutes automatically
 
-**Root Cause**: Node.js process exits due to unhandled errors triggering `process.exit(1)` calls in error handlers (`index.js:497` and `index.js:529`). Even with restart policy "no", container runtime automatically restarts failed processes.
+**Root Cause**: Node.js process exits due to unhandled async operations (promise rejections, uncaught exceptions) that weren't properly caught by global error handlers.
 
 **Symptoms**:
 - Regular restart pattern every 2-3 minutes
 - Container shows as "healthy" but keeps restarting
-- No error messages in standard logs
+- No error messages in standard logs (silent failures)
 - Server starts successfully but exits later during operation
 
 **Diagnosis Commands**:
@@ -385,24 +386,35 @@ podman inspect container_name --format='{{.HostConfig.RestartPolicy.Name}}'
 
 # Monitor resource usage
 podman stats --no-stream container_name
+
+# Check for Podman events showing container restarts
+podman events --since="2025-07-29T10:00:00" --filter container=container_name
 ```
 
 **Solutions**:
 
-**Immediate Debug**: Enable detailed logging to see actual errors
+**✅ FIXED in v2.1.0+**: Enhanced global error handling in `index.js`:
+- Added comprehensive `uncaughtException` handler with timestamp/PID logging
+- Added comprehensive `unhandledRejection` handler with timestamp/PID logging  
+- Added Node.js `warning` handler for performance diagnostics
+- Added `process.exit` handler to track when/why process terminates
+- Verified stable in production mode (DEV_MODE=false) for 50+ minutes without restarts
+
+**Immediate Debug** (if issue persists): Enable detailed logging to see actual errors
 ```bash
 podman-compose down
 DEV_MODE=true podman-compose up
 ```
 
-**Permanent Fix**: Replace `process.exit(1)` calls in error handlers with proper error logging that doesn't terminate the process. The server should handle errors gracefully without exiting.
+**Historical Issue**: Previous versions had `process.exit(1)` calls in error handlers that caused immediate process termination.
 
-**Key Files with Exit Calls**:
-- `index.js:497` - Authentication failure exit
-- `index.js:529` - General startup error exit  
-- `mcp-server.js:227` and `mcp-server.js:246` - MCP server exits
+**Key Files Previously Affected**:
+- `index.js:469-493` - Now has enhanced global error handlers (FIXED)
+- `mcp-server.js:227` - SIGINT handler (acceptable use of process.exit(0))
 
-**Error Pattern**: Server starts → encounters runtime error → `catch` block executes → `process.exit(1)` → container runtime restarts → repeat
+**Previous Error Pattern**: Server starts → encounters runtime error → unhandled async operation → process crash → container runtime restarts → repeat
+
+**Current Status**: ✅ **RESOLVED** - Container stability verified in production deployments
 
 ## File Structure
 

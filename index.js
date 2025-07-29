@@ -469,13 +469,27 @@ const sslOptions = {
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
   console.error('📍 Stack:', error.stack);
+  console.error('📍 Timestamp:', new Date().toISOString());
+  console.error('📍 Process PID:', process.pid);
   // Don't exit the process - log and continue
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise);
   console.error('📍 Reason:', reason);
+  console.error('📍 Timestamp:', new Date().toISOString());
+  console.error('📍 Process PID:', process.pid);
   // Don't exit the process - log and continue
+});
+
+process.on('warning', (warning) => {
+  console.error('⚠️ Node.js Warning:', warning.name, warning.message);
+  console.error('📍 Stack:', warning.stack);
+});
+
+process.on('exit', (code) => {
+  console.error('🚪 Process exiting with code:', code);
+  console.error('📍 Timestamp:', new Date().toISOString());
 });
 
 /**

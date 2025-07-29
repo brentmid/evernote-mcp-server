@@ -7,3 +7,4 @@ node_modules/
 credentials.json
 cert/
 .claude/
+claude_desktop_config.json

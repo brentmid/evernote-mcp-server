@@ -35,6 +35,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **Run Docker container**: `docker run -d --name evernote-mcp -p 3443:3443 -e EVERNOTE_CONSUMER_KEY=your_key -e EVERNOTE_CONSUMER_SECRET=your_secret evernote-mcp-server`
 - **Debug Docker container**: `docker-compose exec evernote-mcp-server sh`
 - **Daily container rebuilds**: `./evernote-mcp-daily-rebuild.sh` (automated script to pull latest Chainguard base image and rebuild with zero downtime)
+- **⚠️ IMPORTANT**: Docker/Podman builds clone from GitHub repository. **Always commit and push code changes before rebuilding containers** or changes won't be included in the build.
 
 ### Podman Development (Docker Alternative)
 - **Build and run with Podman Compose**: `podman-compose up --build` or `docker-compose up --build` (if using docker-compose with Podman)
@@ -45,6 +46,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **Run Podman container**: `podman run -d --name evernote-mcp -p 3443:3443 -e EVERNOTE_CONSUMER_KEY=your_key -e EVERNOTE_CONSUMER_SECRET=your_secret evernote-mcp-server`
 - **Debug Podman container**: `podman exec -it evernote-mcp-server_evernote-mcp-server_1 sh`
 - **List Podman containers**: `podman ps` (note: container names use underscores instead of hyphens)
+- **⚠️ IMPORTANT**: Podman builds clone from GitHub repository. **Always commit and push code changes before rebuilding containers** or changes won't be included in the build.
 
 ### Testing Commands
 - **Run all tests**: `npm test` (38 tests across 3 test suites)

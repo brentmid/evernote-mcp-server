@@ -492,6 +492,31 @@ process.on('exit', (code) => {
   console.error('📍 Timestamp:', new Date().toISOString());
 });
 
+// Additional debugging for process signals
+process.on('SIGTERM', (signal) => {
+  console.error('🛑 Received SIGTERM signal:', signal);
+  console.error('📍 Timestamp:', new Date().toISOString());
+});
+
+process.on('SIGINT', (signal) => {
+  console.error('🛑 Received SIGINT signal:', signal);
+  console.error('📍 Timestamp:', new Date().toISOString());
+});
+
+process.on('SIGQUIT', (signal) => {
+  console.error('🛑 Received SIGQUIT signal:', signal);
+  console.error('📍 Timestamp:', new Date().toISOString());
+});
+
+// Debug process activity every 30 seconds
+setInterval(() => {
+  console.error('❤️ Process heartbeat - still running');
+  console.error('📍 Uptime:', Math.floor(process.uptime()), 'seconds');
+  console.error('📍 Memory usage:', JSON.stringify(process.memoryUsage()));
+  console.error('📍 Active handles:', process._getActiveHandles().length);
+  console.error('📍 Active requests:', process._getActiveRequests().length);
+}, 30000);
+
 /**
  * Initialize authentication and start the HTTPS server
  * Checks for existing tokens, validates expiration, and initiates OAuth flow if needed

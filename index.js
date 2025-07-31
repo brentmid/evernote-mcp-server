@@ -482,17 +482,7 @@ process.on('unhandledRejection', (reason, promise) => {
   // Don't exit the process - log and continue
 });
 
-process.on('warning', (warning) => {
-  console.error('⚠️ Node.js Warning:', warning.name, warning.message);
-  console.error('📍 Stack:', warning.stack);
-});
-
-process.on('exit', (code) => {
-  console.error('🚪 Process exiting with code:', code);
-  console.error('📍 Timestamp:', new Date().toISOString());
-});
-
-// Additional debugging for process signals
+// Keep essential signal handlers for production debugging
 process.on('SIGTERM', (signal) => {
   console.error('🛑 Received SIGTERM signal:', signal);
   console.error('📍 Timestamp:', new Date().toISOString());
@@ -508,13 +498,13 @@ process.on('SIGQUIT', (signal) => {
   console.error('📍 Timestamp:', new Date().toISOString());
 });
 
-// Debug process activity every 30 seconds
+// Minimal keepalive to prevent event loop from becoming inactive
 setInterval(() => {
-  console.error('❤️ Process heartbeat - still running');
-  console.error('📍 Uptime:', Math.floor(process.uptime()), 'seconds');
-  console.error('📍 Memory usage:', JSON.stringify(process.memoryUsage()));
-  console.error('📍 Active handles:', process._getActiveHandles().length);
-  console.error('📍 Active requests:', process._getActiveRequests().length);
+  // Empty function - just keeps event loop active
+  // Optional: minimal logging only in DEV_MODE
+  if (process.env.DEV_MODE === 'true') {
+    console.error('❤️ Process keepalive');
+  }
 }, 30000);
 
 /**

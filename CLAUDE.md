@@ -244,3 +244,70 @@ The issue **IS**:
 5. **Network configuration conflicts**
    - Test with different port configurations or simplified network setup
    - Check for HTTPS/SSL issues specific to the container environment
+
+### **🎯 FINAL RESOLUTION (July 31, 2025)**
+
+#### **Root Cause Discovery Process**
+
+**Phase 1: Initial Hypothesis Testing**
+- ❌ **Health check endpoint mismatch theory**: Initially suspected `/health` vs `/` endpoint issue
+- ✅ **First test was invalid**: Container wasn't actually rebuilt during initial test
+- ✅ **Proper validation test**: 5-minute monitoring with actual container rebuild confirmed endpoint mismatch was NOT the root cause
+
+**Phase 2: Application-Level Investigation**
+- ✅ **Container log monitoring**: Captured real-time logs during restart cycle
+- 🎯 **BREAKTHROUGH**: Discovered container was receiving **SIGTERM signals every ~90 seconds**
+- ✅ **Pattern identified**: Consistent 90-second intervals between startup and SIGTERM termination
+
+**Phase 3: SIGTERM Source Investigation**
+- ✅ **Health check timing analysis**: 
+  - start_period: 40s
+  - interval: 30s  
+  - timeout: 10s
+  - retries: 3
+  - Expected failure timeline: 40s → 70s → 100s (but SIGTERM at 90s)
+- ✅ **Health check isolation test**: Disabled health check completely
+- 🎯 **CRITICAL PROOF**: Container ran stable for 5+ minutes without health check
+- ✅ **Root cause confirmed**: Health check configuration was triggering SIGTERM signals
+
+**Phase 4: Resolution Mystery**
+- 🔍 **Unexpected stability**: Both local and GitHub builds now running stable 14+ minutes
+- ✅ **Build method comparison**: No significant difference between Dockerfile vs Dockerfile.local
+- ✅ **Version consistency**: Both builds contain v2.1.0+ stability improvements
+
+#### **Final Resolution Analysis**
+
+**What Fixed The Issue:**
+1. **v2.1.0+ Container Stability Improvements** (Most Likely Primary Fix):
+   - Enhanced SIGTERM signal handlers with logging
+   - Global error handling (uncaughtException, unhandledRejection)
+   - Graceful degradation instead of process.exit(1) calls
+   - Keepalive mechanism to prevent event loop from becoming inactive
+
+2. **System State Reset** (Contributing Factor):
+   - Podman VM restart (podman machine down/up) cleared problematic state
+   - Fresh container builds eliminated any cached issues
+
+**What We Ruled Out:**
+- ❌ Health check endpoint mismatch (definitively tested)
+- ❌ gvproxy network degradation (symptoms, not cause)
+- ❌ VM networking problems (issue persisted after VM restart)
+- ❌ Build method differences (both local and GitHub builds work)
+
+**Technical Details:**
+- **SIGTERM Pattern**: Exactly ~90 seconds between container start and termination
+- **Health Check Behavior**: Complex HTTPS health check was failing in automated execution despite working manually
+- **Container Runtime**: Podman was sending SIGTERM after health check failures
+- **Resolution**: Enhanced error handling prevents whatever was causing the health check failures
+
+#### **Current Status (July 31, 2025 - 15:15)**
+
+✅ **RESOLVED**: Container running stable with original health check configuration
+✅ **Both build methods working**: Local (Dockerfile.local) and GitHub (Dockerfile) builds
+✅ **No restart loops**: Multiple containers tested for 14+ minute stability periods
+✅ **Health check functional**: Container shows "healthy" status consistently
+
+**For Future Reference:**
+- Issue may be intermittent and timing-dependent
+- v2.1.0+ stability improvements appear robust enough to handle edge cases
+- Monitor for recurrence after system changes or extended runtime

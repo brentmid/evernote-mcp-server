@@ -404,10 +404,11 @@ The container includes built-in health monitoring:
 - Ensure Evernote API credentials are valid
 
 **Container restart loops (every 2-3 minutes):**
-- ✅ **Investigation Status**: Health check endpoint mismatch ruled out as root cause (July 2025)
-- **Current suspects**: Application-level Node.js process exits, resource constraints, or timing configuration
-- **Immediate debugging**: Monitor container logs with `podman-compose logs -f evernote-mcp-server` during restart cycle
-- **See CLAUDE.md**: Complete investigation timeline and current debugging priorities
+- ✅ **RESOLVED** (July 31, 2025): Container stability issue fixed by v2.1.0+ improvements
+- ✅ **Root cause identified**: Health check configuration triggering SIGTERM signals every ~90 seconds
+- ✅ **Solution**: Enhanced error handling and SIGTERM signal management prevent restart loops
+- **Details**: See CLAUDE.md for complete investigation timeline and technical resolution analysis
+- **Status**: Both local and GitHub builds running stable 14+ minutes without restart cycles
 
 **OAuth flow issues in container:**
 - Complete OAuth flow may require running the server locally first

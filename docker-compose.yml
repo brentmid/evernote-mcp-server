@@ -2,9 +2,7 @@ services:
   evernote-mcp-server:
     build:
       context: .
-      dockerfile: Dockerfile
-      args:
-        GITHUB_REPO_URL: https://github.com/brentmid/evernote-mcp-server.git
+      dockerfile: Dockerfile.local
     ports:
       - "3443:3443"
     environment:

@@ -9,10 +9,9 @@ USER node
 # Set working directory
 WORKDIR /app
 
-# Clone the repository from GitHub
-# This assumes your repo is public. For private repos, you'll need to handle authentication
-ARG GITHUB_REPO_URL
-RUN git clone ${GITHUB_REPO_URL} .
+# Copy local source code instead of cloning from GitHub
+COPY --chown=node:node package*.json ./
+COPY --chown=node:node . .
 
 # Install dependencies
 RUN npm ci --only=production

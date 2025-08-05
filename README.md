@@ -404,11 +404,12 @@ The container includes built-in health monitoring:
 - Ensure Evernote API credentials are valid
 
 **Container restart loops (every 2-3 minutes):**
-- ✅ **RESOLVED** (July 31, 2025): Container stability issue fixed by v2.1.0+ improvements
-- ✅ **Root cause identified**: Health check configuration triggering SIGTERM signals every ~90 seconds
-- ✅ **Solution**: Enhanced error handling and SIGTERM signal management prevent restart loops
+- ✅ **RESOLVED** (August 5, 2025): Container stability issue fixed by optimized health check implementation
+- ✅ **Root cause identified**: Node.js health check command was creating accumulating timeout processes
+- ✅ **Solution**: Simplified Node.js health check with proper timeout handling eliminates process accumulation
 - **Details**: See CLAUDE.md for complete investigation timeline and technical resolution analysis
-- **Status**: Both local and GitHub builds running stable 14+ minutes without restart cycles
+- **Diagnostic Tools**: Use provided debugging scripts for similar issues (see Debugging section below)
+- **Status**: Container running stable with proper health checks, no restart cycles detected
 
 **OAuth flow issues in container:**
 - Complete OAuth flow may require running the server locally first
@@ -688,6 +689,108 @@ Example debug output:
   "authenticationToken": "[REDACTED:19chars]"
 }
 ```
+
+### Container Debugging Tools
+
+This repository includes comprehensive diagnostic scripts for troubleshooting container issues. These were developed during the investigation of container restart loops and are useful for future debugging.
+
+#### Available Diagnostic Scripts
+
+**1. `catch_sigterm_sender.sh` - SIGTERM Source Detection**
+```bash
+./catch_sigterm_sender.sh
+```
+- **Purpose**: Identifies which process sends SIGTERM signals to containers
+- **Key Features**: Real-time process monitoring, SIGTERM correlation, system log analysis
+- **Investigation Results**: Successfully identified podman-remote as health check executor
+- **Usage**: Run when containers are receiving unexpected SIGTERM signals
+
+**2. `test_manual_healthcheck.sh` - Health Check Reliability Testing**
+```bash
+./test_manual_healthcheck.sh
+```
+- **Purpose**: Tests health check reliability across multiple methods
+- **Test Methods**: curl (host→container), Node.js (host→container), Node.js (container-internal)
+- **Key Discovery**: Revealed 50% failure rate in host-based health checks vs 100% success for container-internal checks
+- **Usage**: Run when containers show "unhealthy" status or health check failures
+
+**3. `monitor_app_failure.sh` - Runtime Application Monitoring**
+```bash
+./monitor_app_failure.sh
+```
+- **Purpose**: Monitors Node.js application behavior during container failure cycles
+- **Monitoring**: Memory usage, process state, resource usage, application logs
+- **Key Discovery**: Detected accumulating timeout processes causing container crashes
+- **Usage**: Run to capture detailed failure data during container restart cycles
+
+**4. `analyze_app_code.sh` - Application Code Analysis**
+```bash
+./analyze_app_code.sh
+```
+- **Purpose**: Static analysis of application code for common failure patterns
+- **Analysis**: Memory leaks, event listeners, error handlers, SSL issues, Docker configuration
+- **Key Features**: Automated scanning for problematic code patterns
+- **Usage**: First-line analysis tool for identifying potential application issues
+
+#### Debugging Methodology
+
+For container stability issues, follow this systematic approach:
+
+**Phase 1: Code Analysis**
+```bash
+./analyze_app_code.sh
+```
+Check for obvious issues in application code before runtime investigation.
+
+**Phase 2: Health Check Validation**
+```bash
+./test_manual_healthcheck.sh
+```
+Validate health check reliability across different methods to identify network or implementation issues.
+
+**Phase 3: SIGTERM Source Detection**
+```bash
+./catch_sigterm_sender.sh
+```
+If containers are restarting, identify what process is sending termination signals.
+
+**Phase 4: Runtime Monitoring**
+```bash
+./monitor_app_failure.sh
+```
+For ongoing issues, capture detailed runtime behavior during failure cycles.
+
+#### Diagnostic Script Features
+
+**All scripts include:**
+- ✅ **Comprehensive documentation** with purpose, usage, and investigation results
+- ✅ **Timestamped logging** for precise event correlation
+- ✅ **No sensitive information** - safe for public GitHub repositories
+- ✅ **Configurable parameters** - easily adaptable to different container setups
+- ✅ **Background monitoring** - capture data without interfering with normal operation
+- ✅ **Analysis guidance** - built-in tips for interpreting results
+
+**Example usage for container restart investigation:**
+```bash
+# Quick health check validation
+./test_manual_healthcheck.sh
+
+# If health checks are failing, identify the SIGTERM sender
+./catch_sigterm_sender.sh
+
+# For deeper analysis, monitor runtime behavior
+./monitor_app_failure.sh
+```
+
+#### Investigation Results Summary
+
+**Container restart loop issue (August 5, 2025):**
+- ✅ **Root Cause**: Node.js health check command creating accumulating timeout processes
+- ✅ **Detection Method**: Runtime monitoring script revealed process accumulation pattern
+- ✅ **Solution**: Simplified health check with proper timeout handling 
+- ✅ **Result**: Container stability restored, no restart cycles
+
+These tools provide a systematic approach to container debugging and can be adapted for other Node.js containerized applications.
 
 ## 🧪 Testing
 

@@ -19,7 +19,7 @@ services:
       - EVERNOTE_EDAM_NOTE_STORE_URL=${EVERNOTE_EDAM_NOTE_STORE_URL:-}
       - EVERNOTE_EDAM_WEB_API_URL_PREFIX=${EVERNOTE_EDAM_WEB_API_URL_PREFIX:-}
     healthcheck:
-      test: ["CMD", "/usr/bin/node", "-e", "require('https').get({hostname:'localhost',port:3443,rejectUnauthorized:false},res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      test: ["CMD", "/usr/bin/node", "-e", "const https=require('https');const req=https.request({hostname:'localhost',port:3443,rejectUnauthorized:false,timeout:5000},res=>process.exit(res.statusCode===200?0:1));req.on('error',()=>process.exit(1));req.on('timeout',()=>process.exit(1));req.end();"]
       interval: 30s
       timeout: 10s
       retries: 3

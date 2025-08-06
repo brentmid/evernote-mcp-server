@@ -8,3 +8,4 @@ credentials.json
 cert/
 .claude/
 claude_desktop_config.json
+*.plist

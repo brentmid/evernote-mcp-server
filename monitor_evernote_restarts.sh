@@ -29,11 +29,11 @@ fi
 
 log "Found evernote container: $evernote_container"
 
-# Get container creation time
-container_created=$(podman inspect "$evernote_container" --format '{{.Created}}' 2>/dev/null || true)
+# Get container start time (when it was last started/restarted)
+container_created=$(podman inspect "$evernote_container" --format '{{.State.StartedAt}}' 2>/dev/null || true)
 
 if [ -z "$container_created" ]; then
-    log "ERROR: Could not get container creation time"
+    log "ERROR: Could not get container start time"
     exit 1
 fi
 

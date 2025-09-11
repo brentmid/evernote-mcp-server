@@ -18,9 +18,10 @@ services:
       - EVERNOTE_EDAM_EXPIRES=${EVERNOTE_EDAM_EXPIRES:-}
       - EVERNOTE_EDAM_NOTE_STORE_URL=${EVERNOTE_EDAM_NOTE_STORE_URL:-}
       - EVERNOTE_EDAM_WEB_API_URL_PREFIX=${EVERNOTE_EDAM_WEB_API_URL_PREFIX:-}
-    healthcheck:
-      test: ["CMD", "/usr/bin/node", "-e", "require('https').get({hostname:'localhost',port:3443,rejectUnauthorized:false},res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+# Healthcheck temporarily disabled to test if it's causing restarts
+    # healthcheck:
+    #   test: ["CMD", "/usr/bin/node", "-e", "require('https').get({hostname:'localhost',port:3443,rejectUnauthorized:false},res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s

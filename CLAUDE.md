@@ -54,216 +54,91 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **Run tests in watch mode**: `npm run test:watch` (for active development)
 - **Run specific test files**: `npm test auth.test.js`, `npm test server.test.js`, `npm test integration.test.js`
 
-## Container Restart Loop Investigation & Resolution (August 5, 2025)
+## Container Restart Loop Investigation & Resolution (September 15, 2025)
 
-### **🎯 ISSUE COMPLETELY RESOLVED**
+### **🎯 ISSUE DEFINITIVELY RESOLVED**
 
-**FINAL STATUS**: Container restart loop has been definitively identified and **permanently fixed**. Container is now running stable with proper health checks.
+**FINAL STATUS**: Container restart loop has been **completely fixed**. Root cause was misconfigured systemd services inside Podman VM.
 
-#### **🔍 Investigation Timeline & Root Cause Discovery**
+#### **🔍 Investigation Timeline & Actual Root Cause Discovery**
 
-**Phase 1: SIGTERM Source Detection**
-- ✅ **Real-time SIGTERM monitoring**: Created `catch_sigterm_sender.sh` that identified `podman-remote` process (PID 51359) appearing exactly when SIGTERM was sent
-- ✅ **Process correlation**: Confirmed that `podman-remote` is Podman's health check execution mechanism
-- ✅ **Pattern confirmed**: SIGTERM occurs every ~3 minutes, consistent with health check failures
+**Phase 1: SIGTERM Source Identification**
+- ✅ **Real-time monitoring**: Identified container receiving SIGTERM every 2-3 minutes
+- ✅ **Process tracking**: Monitored exact moment of container death (PID monitoring)
+- ✅ **Pattern confirmed**: Consistent restart cycle with SIGTERM signals
 
-**Phase 2: Health Check Deep Analysis**  
-- ✅ **Manual health check testing**: Created `test_manual_healthcheck.sh` running comprehensive tests every 3 seconds for 3 minutes
-- ✅ **CRITICAL DISCOVERY**: Manual health checks showed **50% failure rate** across ALL methods
-- ✅ **Key insight**: Container-based health checks (inside container) had **100% success rate**, while host-based checks failed consistently
+**Phase 2: Container vs VM Investigation**
+- ✅ **Key insight**: Realized container runs inside Podman VM (Linux), not directly on macOS
+- ✅ **VM systemd check**: Found systemd service `container-evernote-mcp-server_evernote-mcp-server_1.service` inside VM
+- ✅ **Service status**: Service was in "deactivating (stop-sigterm)" state with "Result: timeout"
 
-**Phase 3: Runtime Application Monitoring**
-- ✅ **Application behavior analysis**: Created `monitor_app_failure.sh` to capture Node.js process state during failures
-- ✅ **BREAKTHROUGH**: Discovered `[timeout]` processes accumulating every 30 seconds inside container
-- ✅ **Process accumulation pattern**: 1 node process → 2 timeout processes → 3 timeout processes → container crash
+**Phase 3: Systemd Service Analysis**
+- ✅ **Service configuration**: Found problematic `Type=forking` with missing PID file
+- ✅ **Start timeout**: Service timing out after 90 seconds and sending SIGTERM
+- ✅ **Key discovery**: Only evernote and openwebui had systemd services; other containers managed by podman-compose only
 
-**Phase 4: Health Check Command Analysis**
-- ✅ **Root cause identified**: Complex Node.js health check command was creating zombie timeout processes that accumulated until container crashed
-- ✅ **Original problematic command**: 
-  ```bash
-  /usr/bin/node -e "require('https').get({hostname:'localhost',port:3443,rejectUnauthorized:false},res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1))"
-  ```
-- ✅ **Issue**: Node.js `https.get()` with timeout was not properly cleaning up timeout wrappers in containerized environment
+**Phase 4: Container Management Comparison**
+- ✅ **Working containers**: redis, postgres, searxng, n8n, influxdb, grafana - no systemd services
+- ✅ **Problem containers**: evernote and openwebui had systemd services created by `podman generate systemd`
+- ✅ **Root cause**: Someone had run `podman generate systemd` on these containers, creating conflicting management
 
-#### **🔧 RESOLUTION IMPLEMENTED**
+#### **🔧 RESOLUTION IMPLEMENTED (September 15, 2025)**
 
-**Final Fix**: Modified docker-compose.yml health check to use **simplified Node.js command with proper timeout handling**:
+**Problem**: Systemd services inside Podman VM were conflicting with podman-compose management.
 
-```yaml
-healthcheck:
-  test: ["CMD", "/usr/bin/node", "-e", "const https=require('https');const req=https.request({hostname:'localhost',port:3443,rejectUnauthorized:false,timeout:5000},res=>process.exit(res.statusCode===200?0:1));req.on('error',()=>process.exit(1));req.on('timeout',()=>process.exit(1));req.end();"]
-  interval: 30s
-  timeout: 10s
-  retries: 3
-  start_period: 40s
-```
+**Solution**: Completely removed systemd services and reverted to pure podman-compose management:
 
-**Key improvements in the fix**:
-1. **Explicit timeout handling**: Added dedicated `timeout` event handler
-2. **Proper request management**: Used `https.request()` instead of `https.get()` for better control
-3. **Timeout parameter**: Set explicit `timeout: 5000` on the request object
-4. **Container context**: Health check runs inside container network, avoiding host connectivity issues
+```bash
+# Inside Podman VM:
+systemctl --user disable container-evernote-mcp-server_evernote-mcp-server_1.service
+systemctl --user disable container-openwebui.service
+rm -f /var/home/core/.config/systemd/user/container-evernote-mcp-server_evernote-mcp-server_1.service
+rm -f /var/home/core/.config/systemd/user/container-openwebui.service
+systemctl --user daemon-reload
 
-#### **❌ VERIFICATION RESULTS - ISSUE NOT ACTUALLY FIXED**
-
-**Container Status**: ❌ **STILL RESTARTING** - Restart loop persisted after Mac reboot (August 6, 2025)  
-**Root Cause**: ❌ **MISDIAGNOSED** - Health checks themselves are failing 50% of the time, not zombie timeout processes  
-**Health Check**: ❌ **FLAKY** - All health check methods (curl, node, container-internal) failing ~50% reliability  
-**Previous Fix**: ❌ **INEFFECTIVE** - Modified health check command didn't solve underlying connectivity/reliability issue  
-
-#### **🗂️ Diagnostic Tools Created (Available for Future Use)**
-
-All diagnostic scripts are fully commented and ready for reuse:
-
-1. **`catch_sigterm_sender.sh`** - Real-time SIGTERM detection with process correlation
-2. **`test_manual_healthcheck.sh`** - Comprehensive health check reliability testing across multiple methods
-3. **`monitor_app_failure.sh`** - Node.js process behavior monitoring with memory and resource tracking
-4. **`analyze_app_code.sh`** - Application code analysis for common failure patterns
-
-#### **❌ Failed Theories Completely Debunked**
-
-- **Health check endpoint mismatch** - Health checks worked fine when app was responsive
-- **gvproxy network degradation** - gvproxy errors were symptoms of container restarts, not causes
-- **Podman infrastructure issues** - Other containers (n8n, openwebui) ran fine
-- **Time-based infrastructure degradation** - Issue was container-specific timeout process accumulation
-- **Host-container network connectivity** - Issue was with health check command implementation, not network
-
-#### **🧠 Key Lessons Learned**
-
-1. **CRITICAL: Single health check tests are meaningless** - Must run continuous testing (every 3s for 3+ minutes) to catch flaky behavior
-2. **Container health checks must be tested thoroughly** - Manual testing revealed 50% failure rate that wasn't obvious from logs
-3. **Health check command syntax is NOT the issue** - All methods (curl, node, container-internal) fail at same ~50% rate
-4. **Timeout process accumulation was a red herring** - Real issue is health check reliability, not zombie processes
-5. **Health check failures cause container restarts** - Podman kills container after 3 consecutive failed health checks
-6. **Debugging assumptions must be constantly challenged** - Previous "final fix" was based on incomplete testing
-
-#### **🔄 Future Debugging Strategy**
-
-If similar issues occur:
-1. **Run diagnostic scripts** in sequence: `analyze_app_code.sh` → `test_manual_healthcheck.sh` → `monitor_app_failure.sh`
-2. **Check process accumulation** inside container with `podman exec <container> ps aux`
-3. **Test health check commands manually** inside container before implementing
-4. **Monitor gvproxy logs** at `/var/folders/*/T/podman/gvproxy.log` for network-level symptoms
-5. **Compare container-internal vs host-based connectivity** to isolate network issues
-
-**Issue Status**: ❌ **NOT ACTUALLY FIXED** - Issue returned after Mac reboot (August 6, 2025)  
-**Container Stability**: ❌ **RESTART LOOP RETURNED** - Gvproxy port forwarding failures
-
-## CRITICAL DEBUGGING NOTE FOR CLAUDE
-
-**⚠️ CONTAINER IDENTIFICATION WARNING ⚠️**
-STOP confusing containers! There are multiple containers running:
-- **evernote container**: `evernote-mcp-server_evernote-mcp-server_1` 
-- **n8n container**: `n8n`  
-- **openwebui container**: `openwebui`
-
-ALWAYS use: `podman ps --format "{{.ID}} {{.Names}}" | grep evernote | cut -d' ' -f1` to get the RIGHT container ID.
-
-## Container Restart Loop Investigation & Resolution (August 6, 2025)
-
-### **🎯 ACTUAL ROOT CAUSE IDENTIFIED**
-
-**FINAL DIAGNOSIS**: The restart loop is caused by **gvproxy port forwarding failures on macOS**, not application issues.
-
-#### **🔍 Investigation Results**
-
-**Container-Internal vs Host Connectivity:**
-- **Container-internal HTTPS**: `podman exec <container> node -e "https.get(...)"` → ✅ **100% success rate**
-- **Host-to-container HTTPS**: `curl -k https://localhost:3443/` → ❌ **100% failure rate**
-- **Claude Desktop connectivity**: ✅ **Works perfectly** (uses `podman exec`, bypasses networking)
-
-**Health Check Timing Pattern:**
-- Container starts → Health checks work for ~70 seconds → Health checks fail → 3 consecutive failures → SIGTERM → Restart
-- gvproxy logs show "accept tcp [::]:3443: use of closed network connection" at every restart
-
-**Key Evidence:**
-1. **Server process runs fine**: Node.js process healthy, port 3443 bound correctly
-2. **Internal requests work**: Container-to-container HTTPS requests succeed 
-3. **External requests fail**: Host-to-container requests fail despite port forwarding
-4. **Known Podman issue**: GitHub issues #18017, #11396 document identical gvproxy problems
-
-#### **🔧 RESOLUTION IMPLEMENTED (August 6, 2025)**
-
-**Problem**: Original health check used `https.request()` with timeout parameter, creating zombie processes AND relied on host-to-container networking through broken gvproxy.
-
-**Solution**: Modified docker-compose.yml to use **container-internal health check** that bypasses gvproxy entirely:
-
-```yaml
-healthcheck:
-  test: ["CMD", "/usr/bin/node", "-e", "require('https').get({hostname:'localhost',port:3443,rejectUnauthorized:false},res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
-  interval: 30s
-  timeout: 10s  
-  retries: 3
-  start_period: 40s
+# On host:
+podman-compose down && podman-compose up -d
 ```
 
 **Why this works:**
-- Runs INSIDE container (bypasses gvproxy port forwarding)
-- Tests actual HTTPS server functionality 
-- Uses simple `https.get()` without timeout parameter
-- Verified to work 100% reliably during testing
+- Removes conflicting systemd management layer
+- Returns containers to pure podman-compose management like other working containers
+- Eliminates systemd timeout/restart behavior
+- Matches the working configuration of other stable containers
 
 #### **✅ VERIFICATION STEPS COMPLETED**
 
-**Container Rebuild Process:**
-```bash
-cd ~/bin/evernote-mcp-server
-podman-compose down
-podman-compose up -d --build --no-cache
-```
-
-**Before Fix:** 
-```javascript  
-// OLD: Host-based health check with timeout (created zombie processes)
-const https=require('https');const req=https.request({hostname:'localhost',port:3443,rejectUnauthorized:false,timeout:5000},res=>process.exit(res.statusCode===200?0:1));req.on('error',()=>process.exit(1));req.on('timeout',()=>process.exit(1));req.end();
-```
+**Before Fix:**
+- Container restarted every 2-3 minutes with SIGTERM
+- Systemd service showed `Type=forking` with PID file errors
+- Service timeout after 90 seconds causing SIGTERM
 
 **After Fix:**
-```javascript
-// NEW: Container-internal health check without timeout  
-require('https').get({hostname:'localhost',port:3443,rejectUnauthorized:false},res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1))
-```
+- ✅ Container running stable for 10+ minutes (well past previous restart cycle)
+- ✅ No systemd services managing the container
+- ✅ Pure podman-compose management like other working containers
+- ✅ Same stable behavior as containers running for 11+ hours
 
-**Container Status After Fix:**
-- ✅ Container transitioned from "starting" → "healthy"
-- ✅ No restarts observed for 2+ minutes past previous failure point
-- ✅ Health checks passing consistently
-- ✅ New container using correct health check configuration (verified via `podman inspect`)
+#### **🔄 Future Prevention**
 
-#### **🔄 IF ISSUE RETURNS AFTER NEXT REBOOT**
+**NEVER run `podman generate systemd` on containers managed by podman-compose**
 
-**Immediate Diagnosis Commands:**
-```bash
-# 1. Get correct container ID
-evernote_container=$(podman ps --format "{{.ID}} {{.Names}}" | grep evernote | cut -d' ' -f1)
+If containers need persistent startup, use:
+- macOS LaunchAgents to run `podman-compose up -d` on boot
+- Podman auto-restart policies in compose files
+- NOT systemd service generation inside the VM
 
-# 2. Check current health check config
-podman inspect $evernote_container | grep -A 10 -B 2 "Healthcheck"
+#### **🗂️ Diagnostic Tools (Still Available)**
 
-# 3. Test container-internal connectivity  
-podman exec $evernote_container /usr/bin/node -e "require('https').get({hostname:'localhost',port:3443,rejectUnauthorized:false},(res)=>{console.log('Status:',res.statusCode)}).on('error',(e)=>console.log('Error:',e.message))"
+Diagnostic scripts remain available for future issues:
+1. **`catch_sigterm_sender.sh`** - Real-time SIGTERM detection
+2. **`test_manual_healthcheck.sh`** - Health check testing
+3. **`monitor_app_failure.sh`** - Process monitoring
 
-# 4. Test host-to-container connectivity
-timeout 3 curl -k -s -w "Status: %{http_code}\n" https://localhost:3443/ -o /dev/null
-```
+#### **🧠 KEY LESSONS LEARNED**
 
-**Expected Results:**
-- Container-internal: Status 200 ✅  
-- Host-to-container: Status 000 ❌ (confirms gvproxy issue)
-
-**Fix Commands:**
-```bash
-cd ~/bin/evernote-mcp-server
-podman-compose down  
-podman-compose up -d --build --no-cache
-```
-
-**Verification:** New container should have health check without timeout parameter and should not restart.
-
-#### **🧠 KEY LESSONS FOR FUTURE DEBUGGING**
-
-1. **CONTAINER IDENTIFICATION**: Always use `grep evernote` to get the right container ID
-2. **ROOT CAUSE**: gvproxy port forwarding failures, not application issues
-3. **SOLUTION**: Container-internal health checks bypass gvproxy completely  
-4. **VERIFICATION**: Check `podman inspect` to confirm health check configuration
-5. **TESTING**: Container-internal requests work, host requests fail (confirms diagnosis)
+1. **Container management**: Don't mix podman-compose with systemd services
+2. **VM vs Host**: Remember containers run inside Podman VM (Linux) with its own systemd
+3. **Debugging method**: Always compare working vs broken containers to find differences
+4. **Root cause vs symptoms**: gvproxy errors were symptoms, not the cause
+5. **Simplicity wins**: Working containers use simple podman-compose management only

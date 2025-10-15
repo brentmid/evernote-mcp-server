@@ -19,14 +19,20 @@ jest.mock('fs', () => ({
 }));
 
 // Mock child_process to avoid opening browser during tests
+// Now using spawn() instead of exec() for security
+const mockSpawn = jest.fn(() => ({
+  on: jest.fn(),
+  unref: jest.fn()
+}));
+
 jest.mock('child_process', () => ({
-  exec: jest.fn((cmd, callback) => callback(null))
+  spawn: mockSpawn
 }));
 
 // Import after mocking
 const fs = require('fs');
 const keytar = require('keytar');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 
 // We need to test the auth module, but it uses environment variables
 // Set test environment variables
@@ -220,14 +226,19 @@ describe('Auth Module', () => {
   });
 
   describe('Browser Integration', () => {
-    test('should attempt to open browser for authorization', () => {
-      // Test that exec is called when opening browser
-      const { exec } = require('child_process');
-      
+    test('should attempt to open browser for authorization using spawn', () => {
+      // Test that spawn is called when opening browser (secure, no shell execution)
+      const { spawn } = require('child_process');
+
+      // Clear previous calls
+      mockSpawn.mockClear();
+
       // Simulate opening browser (this is mocked)
-      exec('open "https://example.com"', () => {});
-      
-      expect(exec).toHaveBeenCalled();
+      // The actual openBrowser function will call spawn with proper arguments
+      spawn('open', ['https://example.com'], { stdio: 'ignore', detached: true });
+
+      expect(spawn).toHaveBeenCalled();
+      expect(spawn).toHaveBeenCalledWith('open', ['https://example.com'], { stdio: 'ignore', detached: true });
     });
   });
 

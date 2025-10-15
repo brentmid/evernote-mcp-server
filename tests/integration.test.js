@@ -7,11 +7,17 @@ const querystring = require('querystring');
 
 // No longer need to mock keytar as we use environment variables
 
-jest.mock('child_process', () => ({
-  exec: jest.fn((cmd, callback) => callback(null))
+// Mock child_process to use secure spawn instead of exec
+const mockSpawn = jest.fn(() => ({
+  on: jest.fn(),
+  unref: jest.fn()
 }));
 
-const { exec } = require('child_process');
+jest.mock('child_process', () => ({
+  spawn: mockSpawn
+}));
+
+const { spawn } = require('child_process');
 
 // Set test environment
 process.env.EVERNOTE_CONSUMER_KEY = 'test-integration-key';
@@ -110,17 +116,23 @@ describe('OAuth Flow Integration Tests', () => {
   });
 
   describe('Browser Integration', () => {
-    test('should attempt to open browser with correct authorization URL', () => {
+    test('should attempt to open browser with correct authorization URL using spawn', () => {
       const requestToken = 'test_request_token';
       const expectedUrl = `${auth.EVERNOTE_CONFIG.authorizeUrl}?oauth_token=${requestToken}`;
-      
-      // Simulate browser opening (mocked)
-      const openCommand = process.platform === 'darwin' ? 'open' : 
-                         process.platform === 'win32' ? 'start' : 'xdg-open';
-      
-      exec(`${openCommand} "${expectedUrl}"`, () => {});
-      
-      expect(exec).toHaveBeenCalledWith(`${openCommand} "${expectedUrl}"`, expect.any(Function));
+
+      // Clear previous calls
+      mockSpawn.mockClear();
+
+      // Simulate browser opening with spawn (secure, no shell execution)
+      const openCommand = process.platform === 'darwin' ? 'open' :
+                         process.platform === 'win32' ? 'cmd' : 'xdg-open';
+
+      const args = process.platform === 'win32' ? ['/c', 'start', '', expectedUrl] : [expectedUrl];
+
+      spawn(openCommand, args, { stdio: 'ignore', detached: true });
+
+      expect(spawn).toHaveBeenCalled();
+      expect(spawn).toHaveBeenCalledWith(openCommand, args, { stdio: 'ignore', detached: true });
     });
   });
 
@@ -230,7 +242,6 @@ describe('OAuth Flow Integration Tests', () => {
       const result = await auth.getTokenFromEnv();
       expect(result).toBeNull();
     });
-  })
   });
 
   describe('OAuth Parameter Validation', () => {

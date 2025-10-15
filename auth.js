@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const https = require('https');
 const url = require('url');
 const querystring = require('querystring');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -338,21 +338,43 @@ async function clearStoredTokens() {
 
 /**
  * Launch system browser to open URL
+ * SECURITY: Uses spawn() instead of exec() to prevent command injection
  * @param {string} url - URL to open
  */
 function openBrowser(url) {
-  const command = process.platform === 'darwin' ? 'open' : 
-                 process.platform === 'win32' ? 'start' : 'xdg-open';
-  
-  exec(`${command} "${url}"`, (error) => {
-    if (error) {
-      console.error('❌ Failed to open browser:', error.message);
-      console.error('📋 Please manually open this URL in your browser:');
-      console.error(url);
-    } else {
-      console.error('🌐 Browser opened for Evernote authorization');
-    }
+  let command, args;
+
+  if (process.platform === 'darwin') {
+    // macOS: open <url>
+    command = 'open';
+    args = [url];
+  } else if (process.platform === 'win32') {
+    // Windows: cmd /c start "" <url>
+    // The empty string "" is the window title parameter for start command
+    command = 'cmd';
+    args = ['/c', 'start', '', url];
+  } else {
+    // Linux: xdg-open <url>
+    command = 'xdg-open';
+    args = [url];
+  }
+
+  // Use spawn() with array arguments - does NOT invoke shell, preventing injection
+  const child = spawn(command, args, {
+    stdio: 'ignore',  // Don't pipe stdio
+    detached: true    // Allow parent to exit independently
   });
+
+  child.on('error', (error) => {
+    console.error('❌ Failed to open browser:', error.message);
+    console.error('📋 Please manually open this URL in your browser:');
+    console.error(url);
+  });
+
+  // Allow the parent process to exit independently of the child
+  child.unref();
+
+  console.error('🌐 Browser opened for Evernote authorization');
 }
 
 /**

@@ -264,7 +264,8 @@ async function checkTokenExpiration() {
     }
     
     const now = Date.now();
-    const expirationDate = new Date(parseInt(tokenData.edamExpires) * 1000);
+    // edamExpires is already in milliseconds, don't multiply by 1000
+    const expirationDate = new Date(parseInt(tokenData.edamExpires));
     const isExpired = now > expirationDate.getTime();
     const timeUntilExpiration = expirationDate.getTime() - now;
     

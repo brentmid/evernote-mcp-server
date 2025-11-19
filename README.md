@@ -21,7 +21,7 @@ This project allows the LLM to send MCP calls like `createSearch`, `getNote`, an
 **v2.0.0: Production-Ready Docker Deployment**
 - 🐳 **One-command setup**: `docker-compose up` for instant deployment
 - 🔐 **Persistent authentication**: OAuth tokens survive container restarts
-- 🛡️ **Security-first**: Chainguard distroless base images with zero CVEs
+- 🛡️ **Security-first**: Red Hat Hummingbird minimal base images with zero CVEs
 - ⚡ **Optimized builds**: Multi-stage Docker builds for minimal production footprint
 - 🔧 **Auto-configuration**: SSL certificates and environment setup handled automatically
 
@@ -889,7 +889,14 @@ The test suite ensures OAuth 1.0a implementation correctness, validates all serv
 
 ## 📋 Changelog
 
-### v2.1.3 (Latest)
+### v2.2.1 (Latest)
+- Migrated container base images from Chainguard to Red Hat Project Hummingbird
+
+### v2.2.0
+- Fixed token expiration date parsing (removed erroneous *1000 multiplication)
+- Fixed command injection vulnerability in openBrowser function
+
+### v2.1.3
 **🛡️ Reliable Health Check Implementation:**
 - **Process-Based Health Check** - Implemented simple `/proc/1/stat` filesystem check avoiding gvproxy network issues
 - **100% Health Check Reliability** - Verified 20/20 test passes with zero false positive failures

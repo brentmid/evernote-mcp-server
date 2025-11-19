@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 # Daily rebuild script for Evernote MCP Server with Podman
-# Pulls latest Chainguard Node.js base image and rebuilds container
+# Pulls latest Red Hat Hummingbird Node.js base image and rebuilds container
 # Designed for automated execution via Lingon or cron
 # Zero downtime deployment using Podman Compose
 
@@ -22,10 +22,10 @@ if ! podman machine list | grep -q "Currently running"; then
     sleep 10  # Give it time to start up
 fi
 
-# Pull latest Chainguard base images (both regular and dev for multi-stage build)
-echo "[INFO] Pulling latest Chainguard base images..."
-podman pull cgr.dev/chainguard/node:latest
-podman pull cgr.dev/chainguard/node:latest-dev
+# Pull latest Hummingbird base images (both regular and builder for multi-stage build)
+echo "[INFO] Pulling latest Hummingbird base images..."
+podman pull quay.io/hummingbird/nodejs:latest
+podman pull quay.io/hummingbird/nodejs:latest-builder
 
 # Remove existing images to force complete rebuild
 echo "[INFO] Removing existing images to force rebuild..."

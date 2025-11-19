@@ -9,6 +9,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 ## Architecture
 
 - **Language**: Node.js with Express framework
+- **Container base images**: Red Hat Project Hummingbird Node.js images (quay.io/hummingbird/nodejs:latest-builder for build stage, quay.io/hummingbird/nodejs:latest for production)
 - **External services**: Evernote API using OAuth 1.0a authentication
 - **Main entry point**: `index.js` - HTTPS server with OAuth integration
 - **Authentication module**: `auth.js` - handles complete OAuth 1.0a flow
@@ -34,7 +35,7 @@ This is a local Evernote MCP (Model Context Protocol) server that connects Claud
 - **Build Docker image directly**: `docker build --build-arg GITHUB_REPO_URL=https://github.com/yourusername/evernote-mcp-server.git -t evernote-mcp-server .`
 - **Run Docker container**: `docker run -d --name evernote-mcp -p 3443:3443 -e EVERNOTE_CONSUMER_KEY=your_key -e EVERNOTE_CONSUMER_SECRET=your_secret evernote-mcp-server`
 - **Debug Docker container**: `docker-compose exec evernote-mcp-server sh`
-- **Daily container rebuilds**: `./evernote-mcp-daily-rebuild.sh` (automated script to pull latest Chainguard base image and rebuild with zero downtime)
+- **Daily container rebuilds**: `./rebuild.sh` (automated script to pull latest Red Hat Hummingbird base images and rebuild with zero downtime)
 - **⚠️ IMPORTANT**: Docker/Podman builds clone from GitHub repository. **Always commit and push code changes before rebuilding containers** or changes won't be included in the build.
 
 ### Podman Development (Docker Alternative)

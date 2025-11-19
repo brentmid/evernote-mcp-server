@@ -1,28 +1,31 @@
-# Multi-stage build using Chainguard's secure Node.js base image
-FROM cgr.dev/chainguard/node:latest-dev AS builder
+# Multi-stage build using Red Hat Hummingbird's secure Node.js base image
+FROM quay.io/hummingbird/nodejs:latest-builder AS builder
 
 # Install OpenSSL for certificate generation
 USER root
-RUN apk add --no-cache openssl
-USER node
+RUN dnf install -y openssl
 
-# Set working directory
+# Set working directory and change ownership
 WORKDIR /app
+RUN chown -R 65532:0 /app
+
+# Switch to non-root user
+USER 65532
 
 # Copy local source code instead of cloning from GitHub
-COPY --chown=node:node package*.json ./
-COPY --chown=node:node . .
+COPY --chown=65532:0 package*.json ./
+COPY --chown=65532:0 . .
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (set npm cache to writable location)
+RUN npm ci --only=production --cache=/app/.npm
 
 # Generate SSL certificates for HTTPS server
 RUN mkdir -p cert && \
     openssl req -x509 -newkey rsa:4096 -keyout cert/localhost.key -out cert/localhost.crt -days 365 -nodes \
     -subj "/C=US/ST=Local/L=Local/O=Local/OU=Local/CN=localhost"
 
-# Production stage using minimal Chainguard image
-FROM cgr.dev/chainguard/node:latest
+# Production stage using minimal Hummingbird image
+FROM quay.io/hummingbird/nodejs:latest
 
 # Set working directory
 WORKDIR /app

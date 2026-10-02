@@ -31,9 +31,12 @@ podman pull quay.io/hummingbird/nodejs:latest-builder
 echo "[INFO] Removing existing images to force rebuild..."
 podman rmi localhost/evernote-mcp-server_evernote-mcp-server:latest 2>/dev/null || echo "[INFO] No existing image to remove"
 
-echo "[INFO] Rebuilding and restarting using podman-compose with no-cache..."
+echo "[INFO] Building image with no-cache (BEFORE down, so a failed build never removes the running container — edr #62)..."
+podman-compose build --no-cache
+
+echo "[INFO] Restarting container on the freshly built image..."
 podman-compose down
-podman-compose up -d --build --no-cache
+podman-compose up -d
 
 # Wait for container to start and health check
 echo "[INFO] Waiting for container health check..."
